@@ -95,6 +95,12 @@ void Gui::update() {
         if(ImGui::Checkbox("Improve mesh", &m_core->m_mesher->m_improve_mesh)){
             m_core->recompute_mesher();
         }
+        if (ImGui::SliderInt("m_min_length_horizontal_edge", &m_core->m_mesher->m_min_length_horizontal_edge, 0, 5)) {
+           m_core->recompute_mesher();
+       }
+       if (ImGui::SliderInt("m_max_length_horizontal_edge", &m_core->m_mesher->m_max_length_horizontal_edge, 5, 400)) {
+           m_core->recompute_mesher();
+       }
         if (ImGui::SliderFloat("m_min_grazing", &m_core->m_mesher->m_min_grazing, 0.0f, 1.0f)) {
            m_core->recompute_mesher();
        }

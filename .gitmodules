@@ -1,0 +1,18 @@
+[submodule "deps/imgui"]
+	path = deps/imgui
+	url = https://github.com/RaduAlexandru/imgui.git
+[submodule "deps/libigl"]
+	path = deps/libigl
+	url = https://github.com/RaduAlexandru/libigl.git
+[submodule "deps/loguru"]
+	path = deps/loguru
+	url = https://github.com/RaduAlexandru/loguru.git
+[submodule "deps/nanoflann"]
+	path = deps/nanoflann
+	url = https://github.com/jlblancoc/nanoflann.git
+[submodule "deps/tiny-process-library"]
+	path = deps/tiny-process-library
+	url = https://github.com/RaduAlexandru/tiny-process-library.git
+[submodule "deps/octree"]
+	path = deps/octree
+	url = https://github.com/RaduAlexandru/octree.git

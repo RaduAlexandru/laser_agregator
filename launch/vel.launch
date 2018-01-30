@@ -1,0 +1,10 @@
+<launch>
+
+  <node pkg="velodyne_pointcloud" type="cloud_node" name="cloud_node" output="screen">
+    <param name="calibration" value="/media/alex/Data/Master/SHK/c_ws/src/velodyne/velodyne_pointcloud/params/VLP16db.yaml" />
+    <param name="organize_cloud" value="true"/>
+  </node>
+
+  <node pkg="rosbag" type="play" name="player" output="screen" args="--clock /media/alex/Data/Master/Thesis/data/janis_data/2017-08-24-17-10-10.bag /velodyne_points:=/original_points"/>
+
+</launch>

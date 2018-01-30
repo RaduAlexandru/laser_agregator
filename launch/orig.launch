@@ -1,0 +1,21 @@
+<launch>
+  <arg name="path" default="/media/alex/Data/Master/Thesis/data/janis_data/" />
+  <arg name="file_1" default="2017-08-24-17-10-10" />
+  <arg name="start_time" default="50" />
+  <node pkg="rosbag" type="play" name="player_color" output="screen" args="--clock -r 0.3 -q --start=$(arg start_time) $(arg path)$(arg file_1).bag">
+    <remap from="/velodyne_points" to="/original_points" />
+    <!-- remaping the original unorganized point cloud to something else-->
+  </node>
+
+
+
+  <node pkg="velodyne_pointcloud" type="cloud_node" name="cloud_node" output="screen"  >
+    <param name="calibration" value="/media/alex/Data/Master/SHK/c_ws/src/velodyne/velodyne_pointcloud/params/VLP16db.yaml" />
+    <param name="organize_cloud" value="true"/>
+    <param name="view_direction" value="3.07"/>
+    <param name="view_width" value="6.031"/>
+  </node>
+
+
+
+</launch>

@@ -169,7 +169,7 @@ void Core::callback(const sensor_msgs::CompressedImageConstPtr& img_msg, const s
 
 
     LOG_S(INFO) << "calback------------------------------";
-
+    std::lock_guard<std::mutex> lock(m_mutex_recon);
 
     if(m_player_should_do_one_step){
         m_player_should_do_one_step=false;

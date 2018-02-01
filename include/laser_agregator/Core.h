@@ -67,7 +67,7 @@ public:
     //Misc
     Scene m_scene;
     pcl::PointCloud<PointXYZIDR>::Ptr m_last_cloud;
-    char m_exported_filename[32] = "./scene";
+    char m_exported_filename[64] = "./scene";
     uint64_t m_last_timestamp;
     int m_nr_callbacks;
 
@@ -97,7 +97,7 @@ public:
     bool m_show_edges;
     int m_color_type;
     bool m_show_sensor_poses;
-    const char* m_color_types_desc[6] =
+    const char* m_color_types_desc[7] =
       {
               "Jet color",
               "Gray scale",
@@ -105,6 +105,7 @@ public:
               "By idx in the V vector",
               "Ambient occlusion",
               "Default"
+              "Gold"
       };
     float m_cap_max_y;
     float m_point_size;
@@ -122,6 +123,15 @@ public:
 
 
     //Misc stuff that help with presenting the mesh
+    float m_animation_time;
+    char m_results_path[256] = "./results/";
+    char m_single_png_filename[64] = "img.png";
+    int m_orbit_frame_counter;
+    void write_single_png();
+    void write_orbit_png();  //does a full orbit and writes pngs after each incremental step
+    void init_orbit(int& nr_steps, Eigen::Matrix3f& rotation_increment);
+    void orbit();  // does a full robit but doesn't write anything
+    void make_incremental_step_in_orbit(const Eigen::Matrix3f& rotation_increment);  // does a small step corresponding to an orbit
 
 private:
 

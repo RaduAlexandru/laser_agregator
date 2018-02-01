@@ -122,6 +122,28 @@ void Gui::update() {
         ImGui::SliderInt("log_level", &loguru::g_stderr_verbosity, -3, 9);
     }
 
+    ImGui::Separator();
+    if (ImGui::CollapsingHeader("Movies")) {
+        ImGui::InputFloat("m_animation_time", &m_core->m_animation_time, 0, 0, 2);
+        ImGui::InputText("results_path", m_core->m_results_path, IM_ARRAYSIZE(m_core->m_results_path));
+        if (ImGui::Button("Write Single PNG")){
+            m_core->write_single_png();
+        }
+        ImGui::SameLine();
+        ImGui::InputText("", m_core->m_single_png_filename, IM_ARRAYSIZE(m_core->m_single_png_filename));
+
+        if (ImGui::Button("Write Orbit to PNG")){
+            m_core->write_orbit_png();
+        }
+        
+
+        if (ImGui::Button("Dummy orbit")){
+            m_core->orbit();
+        }
+    }
+
+
+
 
     ImGui::Separator();
     ImGui::Text(("Nr of points: " + format_with_commas(m_core->m_scene.V.rows())).data());
@@ -129,14 +151,13 @@ void Gui::update() {
     ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 
-    ImGui::InputText("exported filename", m_core->m_exported_filename, 1000);
+    ImGui::InputText("exported filename", m_core->m_exported_filename, IM_ARRAYSIZE(m_core->m_exported_filename));
     if (ImGui::Button("Write PLY")){
         m_core->write_ply();
     }
     if (ImGui::Button("Write OBJ")){
         m_core->write_obj();
     }
-
     // static float f = 0.0f;
     // ImGui::Text("Hello, world!");
     // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);

@@ -1,6 +1,6 @@
 #include "laser_agregator/triangle_utils.h"
 
-// #include <igl/png/writePNG.h>
+#include <igl/png/writePNG.h>
 #include <igl/triangle/triangulate.h>
 #include <igl/boundary_loop.h>
 #include <igl/cat.h>
@@ -331,14 +331,14 @@ int count_flips(const Eigen::MatrixXd &V,
   return flip_idx.size();
 }
 
-// void write_viewer_to_png(igl::viewer::Viewer &viewer, std::string file_path) {
-//   Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>
-//       R(1280 * 4, 800 * 4);
-//   auto G = R, B = R, A = R;
-//
-//   viewer.core.draw_buffer(viewer.data, viewer.opengl, false, R, G, B, A);
-//   igl::png::writePNG(R, G, B, A, file_path);
-// }
+void write_viewer_to_png(igl::viewer::Viewer &viewer, std::string file_path) {
+  Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>
+      R(1280 * 4, 800 * 4);
+  auto G = R, B = R, A = R;
+
+  viewer.core.draw_buffer(viewer.data, viewer.opengl, false, R, G, B, A);
+  igl::png::writePNG(R, G, B, A, file_path);
+}
 
 
 //based on face quality so it avoids reallt skinny ones

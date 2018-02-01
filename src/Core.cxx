@@ -16,6 +16,9 @@
 #include <igl/writePLY.h>
 #include <igl/writeOBJ.h>
 #include <igl/remove_unreferenced.h>
+#include <igl/material_colors.h>
+#include <igl/project.h>
+#include <igl/unproject.h>
 
 //ROS
 #include "laser_agregator/RosTools.h"
@@ -37,8 +40,14 @@
 #include <pcl/common/transforms.h>
 
 
+//GL //for the Movies package to swap buffers
+#include <GL/glad.h>
+#include <GLFW/glfw3.h>
+
+
 //boost
 #include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
 
 
 
@@ -53,9 +62,11 @@ Core::Core(std::shared_ptr<igl::viewer::Viewer> view, std::shared_ptr<Profiler> 
         m_player_should_do_one_step(false),
         m_player_should_continue_after_step(false),
         m_visualization_should_change(false),
-        m_color_type(5),
+        m_color_type(6),
         m_cap_max_y(20),
-        m_nr_callbacks(0){
+        m_nr_callbacks(0),
+        m_animation_time(7),
+        m_orbit_frame_counter(0){
 
     m_view = view;
     m_profiler=profiler;
@@ -449,6 +460,12 @@ Eigen::MatrixXd Core::color_points(const Mesh& mesh)const{
         C.col(0).setConstant(0.41);
         C.col(1).setConstant(0.58);
         C.col(2).setConstant(0.59);
+
+    //GOLD
+    }else if(m_color_type==6) {
+        C.col(0).setConstant(igl::GOLD_DIFFUSE[0]);
+        C.col(1).setConstant(igl::GOLD_DIFFUSE[1]);
+        C.col(2).setConstant(igl::GOLD_DIFFUSE[2]);
     }
 
     return C;
@@ -597,6 +614,73 @@ void Core::create_transformation_matrices(){
      m_tf_worldGL_worldROS.matrix().block<3,3>(0,0)=worldGL_worldROS_rot;
 
 
+
+
+}
+
+
+
+void Core::write_single_png(){
+    fs::path dir (m_results_path);
+    fs::path png_name (m_single_png_filename);
+    fs::path full_path = dir / png_name;
+    std::cout << " write_single_png: " << full_path << std::endl;
+
+}
+
+void Core::init_orbit(int& nr_steps, Eigen::Matrix3f& rotation_increment){
+    int fps=30;
+    nr_steps= fps*m_animation_time;   // I have 30 frames/second and x second at my disposal, how many frames will there be?
+
+    //we have 360 degrees to take in nr_steps, how big should each rotation matrix be
+    double angle_increment = 2*M_PI / nr_steps;
+    rotation_increment = Eigen::AngleAxisf(angle_increment,  Eigen::Vector3f::UnitY());
+
+}
+
+void Core::orbit(){
+    std::cout << "orbit_around_point" << '\n';
+
+    int nr_steps;
+    Eigen::Matrix3f rotation_increment;
+    init_orbit(nr_steps, rotation_increment);
+
+    for (size_t i = 0; i < nr_steps; i++) {
+        make_incremental_step_in_orbit(rotation_increment);
+    }
+
+}
+
+void Core::make_incremental_step_in_orbit(const Eigen::Matrix3f& rotation_increment){
+
+    Eigen::Matrix3f new_rot=   m_view->core.trackball_angle.toRotationMatrix()* rotation_increment;
+    Eigen::Quaternionf new_quat(new_rot);
+    new_quat.normalize();
+    m_view->core.trackball_angle=new_quat;
+    m_view->draw();
+    glfwSwapBuffers(m_view->window);
+    // m_visualization_should_change=true;
+
+}
+
+void Core::write_orbit_png(){
+
+    fs::path dir (m_results_path);
+    fs::path png_name (std::to_string(m_orbit_frame_counter)+".png");
+    fs::path full_path = dir / png_name;
+    std::cout << " write_orbit_png: " << full_path << std::endl;
+
+    int nr_steps;
+    Eigen::Matrix3f rotation_increment;
+    init_orbit(nr_steps, rotation_increment);
+
+    for (size_t i = 0; i < nr_steps; i++) {
+        make_incremental_step_in_orbit(rotation_increment);
+        std::cout << "write this buffer to the png" << '\n';
+        //increment the count of the png
+        m_orbit_frame_counter++;
+    }
+    m_orbit_frame_counter=0;
 
 
 }

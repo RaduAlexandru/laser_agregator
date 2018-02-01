@@ -104,7 +104,7 @@ public:
               "Distance to sensor",
               "By idx in the V vector",
               "Ambient occlusion",
-              "Default"
+              "Default",
               "Gold"
       };
     float m_cap_max_y;

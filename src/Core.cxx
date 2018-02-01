@@ -17,8 +17,9 @@
 #include <igl/writeOBJ.h>
 #include <igl/remove_unreferenced.h>
 #include <igl/material_colors.h>
-#include <igl/project.h>
-#include <igl/unproject.h>
+#include <igl/embree/ambient_occlusion.h>
+#include <igl/embree/EmbreeIntersector.h>
+
 
 //ROS
 #include "laser_agregator/RosTools.h"
@@ -450,10 +451,15 @@ Eigen::MatrixXd Core::color_points(const Mesh& mesh)const{
 
     //AO
     }else if(m_color_type==4){
-        //TODO
-        // Eigen::VectorXd ao;
-        // m_fuser->ambient_occlusion(ao, m_scene, 100);
-        // C = ao.replicate(1,3);
+        int num_samples=100;
+        Eigen::VectorXd ao;
+        igl::embree::EmbreeIntersector ei;
+        ei.init(mesh.V.cast<float>(),mesh.F.cast<int>());
+        Eigen::MatrixXd N_vertices;
+        igl::per_vertex_normals(mesh.V, mesh.F, N_vertices);
+        igl::embree::ambient_occlusion(ei, mesh.V, N_vertices, num_samples, ao);
+        ao=1.0-ao.array(); //a0 is 1.0 in occluded places and 0.0 in non ocluded so we flip it to have 0.0 (dark) in occluded
+        C = ao.replicate(1,3);
 
     //default
     }else if(m_color_type==5) {

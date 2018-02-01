@@ -131,32 +131,6 @@ void get_flips(const Eigen::MatrixXd &V,
 void read_mesh_and_init();
 
 void triangle_improving_edge_flip(const Eigen::MatrixXd &V,
-                                  Eigen::MatrixXi &F,
-                                  Eigen::MatrixXi &E,
-                                  Eigen::MatrixXi &EF,
-                                  Eigen::MatrixXi &EV,
-                                  Eigen::VectorXi &EMAP_vec);
-
-void triangle_improving_edge_flip2(const Eigen::MatrixXd &V,
-                                Eigen::MatrixXi &F,
-                                Eigen::MatrixXi &E,
-                                Eigen::MatrixXi &EF,
-                                Eigen::MatrixXi &EV,
-                                Eigen::VectorXi &EMAP_vec,
-                                std::vector<std::vector<int>>& uE2E,
-                                Eigen::MatrixXi& E_all);
-
-void triangle_improving_edge_flip3(const Eigen::MatrixXd &V,
-                                Eigen::MatrixXi &F,
-                                Eigen::MatrixXi &E,
-                                Eigen::MatrixXi &EF,
-                                Eigen::MatrixXi &EV,
-                                Eigen::VectorXi &EMAP_vec,
-                                std::vector<std::vector<int>>& uE2E,
-                                Eigen::MatrixXi& E_all);
-
-
-void triangle_improving_edge_flip4(const Eigen::MatrixXd &V,
                                 Eigen::MatrixXi &F,
                                 Eigen::MatrixXi &E,
                                 Eigen::MatrixXi &EF,

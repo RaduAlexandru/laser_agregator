@@ -260,7 +260,7 @@ void Mesher::improve_mesh(Mesh& mesh){
       }
     }
 
-    triangle_improving_edge_flip4(mesh.V, mesh.F,E,EF,EV,EMAP_vec);
+    triangle_improving_edge_flip(mesh.V, mesh.F,E,EF,EV,EMAP_vec);
 }
 
 

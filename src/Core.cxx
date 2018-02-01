@@ -54,6 +54,7 @@ Core::Core(std::shared_ptr<igl::viewer::Viewer> view, std::shared_ptr<Profiler> 
         m_player_should_continue_after_step(false),
         m_visualization_should_change(false),
         m_color_type(5),
+        m_cap_max_y(20),
         m_nr_callbacks(0){
 
     m_view = view;
@@ -364,8 +365,6 @@ void Core::set_points(Mesh &mesh) {
        m_view->data.set_points(mesh.V, mesh.C);
    }
 
-   m_view->core.point_size = 2;
-
 
    if (!m_viewer_initialized) {
        m_viewer_initialized = true;
@@ -402,6 +401,7 @@ Eigen::MatrixXd Core::color_points(const Mesh& mesh)const{
     double min_y, max_y;
     min_y = mesh.V.col(1).minCoeff();
     max_y = mesh.V.col(1).maxCoeff();
+    max_y=std::min(max_y, (double)m_cap_max_y); //cap the max y so we can see the colors better in the case one point has very high Y coord
 
     if(m_color_type==0){
         for (size_t i = 0; i < C.rows(); i++) {

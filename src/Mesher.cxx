@@ -49,6 +49,7 @@ Mesher::Mesher() :
         m_edge_grazing_angle_thresh_vertical(0.9),
         m_min_grazing(0.075),
         m_max_tri_length(8),
+        m_min_tri_quality(0.015),
         m_create_faces(true),
         m_improve_mesh(true){
 
@@ -289,9 +290,25 @@ void Mesher::remove_faces_with_low_confidence(Mesh& mesh){
         }
     }
 
+
+    // //remove silvers (unfortunatelly some triangles on close walls are aleady silvers and I don't want to remove them)
+    // Eigen::VectorXd double_areas;
+    // Eigen::MatrixXd squared_edge_lenghts;
+    // igl::doublearea(mesh.V, mesh.F, double_areas);
+    // igl::squared_edge_lengths(mesh.V, mesh.F, squared_edge_lenghts);
+    // Eigen::VectorXd faces_quality(mesh.F.rows());
+    // faces_quality.setZero();
+    // faces_quality= 2*sqrt(3)* double_areas.array() / squared_edge_lenghts.rowwise().sum().array();
+    // std::vector<bool> face_low_quality(mesh.F.rows(),false);
+    // for (int i = 0; i < mesh.F.rows(); ++i) {
+    //     if(faces_quality(i) < m_min_tri_quality ){
+    //         face_low_quality[i]=true;
+    //     }
+    // }
+
     std::vector<bool> is_face_low_confidence(mesh.F.rows(),false);
     for (int i = 0; i < mesh.F.rows(); ++i) {
-        if(face_too_grazing[i] || face_too_streched[i]){
+        if(face_too_grazing[i] || face_too_streched[i] ){
             is_face_low_confidence[i]=true;
         }
     }

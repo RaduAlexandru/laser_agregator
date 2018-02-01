@@ -106,6 +106,8 @@ public:
               "Ambient occlusion",
               "Default"
       };
+    float m_cap_max_y;
+    float m_point_size;
 
 
     //transforms
@@ -117,6 +119,9 @@ public:
     //agregating all info
     Eigen::MatrixXd V_all;
     Eigen::MatrixXd NV_all;
+
+
+    //Misc stuff that help with presenting the mesh
 
 private:
 

@@ -83,6 +83,10 @@ void Gui::update() {
 
        ImGui::SliderFloat("shininess", &m_view->core.shininess, 0.001f, 2.0f);
        ImGui::SliderFloat("lighting_factor", &m_view->core.lighting_factor, 0.0f, 2.0f);
+       ImGui::SliderFloat("point_size", &m_view->core.point_size, 1.0, 7.0);
+       if(ImGui::SliderFloat("m_cap_max_y", &m_core->m_cap_max_y, 0.1f, 50.0f)){
+           m_core->m_visualization_should_change=true;
+       }
        if(ImGui::ColorEdit3("Bg color", (float*)&m_bg_color)){
            m_view->core.background_color << m_bg_color.x , m_bg_color.y, m_bg_color.z;
        }
@@ -98,13 +102,16 @@ void Gui::update() {
         if (ImGui::SliderInt("m_min_length_horizontal_edge", &m_core->m_mesher->m_min_length_horizontal_edge, 0, 5)) {
            m_core->recompute_mesher();
        }
-       if (ImGui::SliderInt("m_max_length_horizontal_edge", &m_core->m_mesher->m_max_length_horizontal_edge, 5, 400)) {
+       if (ImGui::SliderInt("m_max_length_horizontal_edge", &m_core->m_mesher->m_max_length_horizontal_edge, 0, 400)) {
            m_core->recompute_mesher();
        }
         if (ImGui::SliderFloat("m_min_grazing", &m_core->m_mesher->m_min_grazing, 0.0f, 1.0f)) {
            m_core->recompute_mesher();
        }
        if (ImGui::SliderFloat("m_max_tri_length", &m_core->m_mesher->m_max_tri_length, 0.0f, 20.0f)) {
+           m_core->recompute_mesher();
+       }
+       if (ImGui::SliderFloat("m_min_tri_quality", &m_core->m_mesher->m_min_tri_quality, 0.0f, 2.0f)) {
            m_core->recompute_mesher();
        }
     }

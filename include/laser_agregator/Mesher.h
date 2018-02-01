@@ -54,6 +54,7 @@ public:
     float m_edge_grazing_angle_thresh_vertical;
     float m_min_grazing;
     float m_max_tri_length;
+    float m_min_tri_quality;
     bool m_create_faces;
     bool m_improve_mesh;
 

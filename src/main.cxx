@@ -54,6 +54,7 @@ int main(int argc, char *argv[]) {
     //Eyecandy options
     view->core.background_color << 0.2, 0.2, 0.2, 1.0;
     view->core.show_lines = false;
+    view->core.point_size = 2;
     view->ngui->window()->setVisible(false);
     // viewer.core.line_color << 1.0, 0.2, 0.2, 1.0;
 

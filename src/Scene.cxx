@@ -64,3 +64,8 @@ std::ostream& operator<<(std::ostream& os, const Scene& s)
 
     return os;
 }
+
+Scene& Scene::operator= (const Mesh& mesh){
+    clear();
+    Mesh::add(mesh);
+}

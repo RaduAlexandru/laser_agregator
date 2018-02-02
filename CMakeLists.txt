@@ -10,7 +10,8 @@ set(PROJECT_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include
                         ${CMAKE_SOURCE_DIR}/deps/imgui/examples/opengl3_example
                         ${CMAKE_SOURCE_DIR}/deps/loguru
                         ${CMAKE_SOURCE_DIR}/deps/tiny-process-library
-                        ${CMAKE_SOURCE_DIR}/deps/octree)		# Header folder
+                        ${CMAKE_SOURCE_DIR}/deps/octree
+                        ${CMAKE_SOURCE_DIR}/deps/nativefiledialog/src/include)		# Header folder
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w") #supress all warnings
@@ -34,6 +35,9 @@ find_package(GLFW REQUIRED)
 find_package(LIBIGL REQUIRED)
 find_package(nanoflann)
 find_package(Boost REQUIRED COMPONENTS system thread filesystem)
+find_package(PkgConfig REQUIRED)
+# for native file dialog
+pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
@@ -153,9 +157,22 @@ target_link_libraries(TINY_PROCESS_LIB ${CMAKE_THREAD_LIBS_INIT})
 set_target_properties(TINY_PROCESS_LIB PROPERTIES LINKER_LANGUAGE C)
 
 
+#nativefiledialog
+set (NFD_SOURCES ${CMAKE_SOURCE_DIR}/deps/nativefiledialog/src/nfd_common.c)
+set (NFD_SOURCES ${NFD_SOURCES}  ${CMAKE_SOURCE_DIR}/deps/nativefiledialog/src/nfd_gtk.c )
+include_directories(${GTK3_INCLUDE_DIRS})
+add_library(nativefiledialog ${NFD_SOURCES})
+target_link_libraries(nativefiledialog ${GTK3_LIBRARIES})
+
+
 
 add_executable(laser_agregator ${MY_SRC}  deps/GL/glad.c   ${IMGUI_SRC}  ${LIBIGL_EXTRA_SOURCES}  )
-target_link_libraries(laser_agregator ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OpenCV_LIBS}    ${GLFW_LIBRARIES} TINY_PROCESS_LIB
+target_link_libraries(laser_agregator ${catkin_LIBRARIES}
+          ${Boost_LIBRARIES}
+          ${OpenCV_LIBS}
+          ${GLFW_LIBRARIES}
+          TINY_PROCESS_LIB
+          nativefiledialog
           ${LIBIGL_LIBRARIES}
           ${LIBIGL_EXTRA_LIBRARIES}
           ${LIBIGL_VIEWER_EXTRA_LIBRARIES}

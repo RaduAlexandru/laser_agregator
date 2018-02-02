@@ -16,3 +16,6 @@
 [submodule "deps/octree"]
 	path = deps/octree
 	url = https://github.com/RaduAlexandru/octree.git
+[submodule "deps/nativefiledialog"]
+	path = deps/nativefiledialog
+	url = https://github.com/mlabbe/nativefiledialog.git

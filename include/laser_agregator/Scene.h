@@ -14,6 +14,7 @@ public:
 
     void sanity_check() const;
     friend std::ostream &operator<<(std::ostream&, const Mesh& m);
+    Scene& operator= (const Mesh& mesh);
 
 
     //vector of poses for each of the added local_meshes;

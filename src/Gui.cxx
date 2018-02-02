@@ -21,6 +21,9 @@
 //libigl
 #include <igl/viewer/Viewer.h>
 
+//nativefiledialog
+#include <nfd.h>
+
 Gui::Gui(std::shared_ptr<Core> core,
          std::shared_ptr<igl::viewer::Viewer> view,
          std::shared_ptr<Profiler> profiler) :
@@ -135,7 +138,7 @@ void Gui::update() {
         if (ImGui::Button("Write Orbit to PNG")){
             m_core->write_orbit_png();
         }
-        
+
 
         if (ImGui::Button("Dummy orbit")){
             m_core->orbit();
@@ -146,24 +149,49 @@ void Gui::update() {
 
 
     ImGui::Separator();
+    if (ImGui::CollapsingHeader("Windows")) {
+        if (ImGui::Button("Test Window")) m_show_demo_window ^= 1;
+        if (ImGui::Button("Profiler Window")) m_show_profiler_window ^= 1;
+        if (ImGui::Button("Player Window")) m_show_player_window ^= 1;
+    }
+
+    ImGui::Separator();
+    if (ImGui::CollapsingHeader("IO")) {
+        if (ImGui::Button("Read mesh from file")){
+            nfdchar_t *path = NULL;
+            nfdresult_t result = NFD_OpenDialog( NULL, NULL, &path );
+            if ( result == NFD_OKAY ) {
+                puts("Success!");
+                puts(path);
+                m_core->m_scene=m_core->read_mesh_from_file(std::string(path));
+                m_core->m_visualization_should_change=true;
+                free(path);
+            }
+        }
+        if (ImGui::Button("Fix orientation")){
+            m_core->m_scene.apply_transform(m_core->m_tf_worldGL_worldROS);
+            m_core->m_visualization_should_change=true;
+        }
+
+        ImGui::InputText("exported filename", m_core->m_exported_filename, IM_ARRAYSIZE(m_core->m_exported_filename));
+        if (ImGui::Button("Write PLY")){
+            m_core->write_ply();
+        }
+        if (ImGui::Button("Write OBJ")){
+            m_core->write_obj();
+        }
+    }
+
+
     ImGui::Text(("Nr of points: " + format_with_commas(m_core->m_scene.V.rows())).data());
     ImGui::Text(("Nr of triangles: " + format_with_commas(m_core->m_scene.F.rows())).data());
     ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 
-    ImGui::InputText("exported filename", m_core->m_exported_filename, IM_ARRAYSIZE(m_core->m_exported_filename));
-    if (ImGui::Button("Write PLY")){
-        m_core->write_ply();
-    }
-    if (ImGui::Button("Write OBJ")){
-        m_core->write_obj();
-    }
     // static float f = 0.0f;
     // ImGui::Text("Hello, world!");
     // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-    if (ImGui::Button("Test Window")) m_show_demo_window ^= 1;
-    if (ImGui::Button("Profiler Window")) m_show_profiler_window ^= 1;
-    if (ImGui::Button("Player Window")) m_show_player_window ^= 1;
+
 
 
 

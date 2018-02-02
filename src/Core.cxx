@@ -99,7 +99,10 @@ void Core::update() {
             m_player->pause(); //starts the bag
         }
 
-        m_scene=m_agregator->get_last_agregated_mesh();
+        if(m_agregator->is_modified()){  // no need to get the mesh again if we only m_visualization_should_change triggered the update
+            m_scene=m_agregator->get_last_agregated_mesh();
+        }
+
 
         m_view->data.clear();
 

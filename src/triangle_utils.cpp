@@ -332,8 +332,11 @@ int count_flips(const Eigen::MatrixXd &V,
 }
 
 void write_viewer_to_png(igl::viewer::Viewer &viewer, std::string file_path) {
+    int width  = std::round(viewer.core.viewport(2));
+    int height = std::round(viewer.core.viewport(3));
+    int magnification=1;
   Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>
-      R(1280 * 4, 800 * 4);
+      R(width*magnification , height*magnification );
   auto G = R, B = R, A = R;
 
   viewer.core.draw_buffer(viewer.data, viewer.opengl, false, R, G, B, A);

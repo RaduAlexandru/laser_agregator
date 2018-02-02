@@ -8,6 +8,7 @@
 #include "laser_agregator/RosBagPlayer.h"
 #include "laser_agregator/Mesher.h"
 #include "laser_agregator/Agregator.h"
+#include "laser_agregator/triangle_utils.h"
 
 //libigl
 #include <igl/viewer/Viewer.h>
@@ -677,16 +678,21 @@ void Core::write_orbit_png(){
     fs::path dir (m_results_path);
     fs::path png_name (std::to_string(m_orbit_frame_counter)+".png");
     fs::path full_path = dir / png_name;
-    std::cout << " write_orbit_png: " << full_path << std::endl;
+    if (boost::filesystem::create_directory(dir))
+        std::cout << "Success" << "\n";
 
     int nr_steps;
     Eigen::Matrix3f rotation_increment;
     init_orbit(nr_steps, rotation_increment);
-
     for (size_t i = 0; i < nr_steps; i++) {
         make_incremental_step_in_orbit(rotation_increment);
-        std::cout << "write this buffer to the png" << '\n';
-        //increment the count of the png
+
+        png_name = fs::path(std::to_string(m_orbit_frame_counter)+".png");
+        full_path = dir / png_name;
+
+        std::cout << "writeing viewer buffer to the png " << full_path << '\n';
+        write_viewer_to_png(*m_view, full_path.string() );
+
         m_orbit_frame_counter++;
     }
     m_orbit_frame_counter=0;

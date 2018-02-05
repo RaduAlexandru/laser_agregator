@@ -51,7 +51,8 @@ Mesher::Mesher() :
         m_max_tri_length(8),
         m_min_tri_quality(0.015),
         m_create_faces(true),
-        m_improve_mesh(true){
+        m_improve_mesh(true),
+        m_adaptive_edge_length(true){
 
     init_params();
 
@@ -88,7 +89,6 @@ Mesh Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
 //    create_simple_mesh2(mesh, cloud);  //TODO substitute it with just the intiialization of V and D because we don't use these faces at all
     mesh.width = cloud->width;  //intended to make the mesh have size 16x1800
     mesh.height = cloud->height;
-    std::cout << "calling pcl2eigen" << '\n';
     mesh.V = pcl2eigen(cloud).leftCols(3);
     mesh.D = pcl2eigen(cloud).rightCols(1);
     smooth_mesh(mesh);
@@ -139,7 +139,6 @@ Mesh Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
 /*Grabs a point cloud and lays down the points in a row by row manner starting from the top-left. */
 Eigen::MatrixXd Mesher::pcl2eigen(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
 
-    std::cout << "in pcl to eigen "  << '\n';
     int num_points = cloud->width*cloud->height;
 
     Eigen::MatrixXd V_d(num_points, 4);  //xyz and distance to sensor
@@ -169,7 +168,6 @@ Eigen::MatrixXd Mesher::pcl2eigen(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
 
         }
     }
-    std::cout << "return pcl to eigen" << '\n';
 
     return V_d;
 
@@ -521,7 +519,14 @@ Eigen::MatrixXi Mesher::create_edges(Mesh& mesh, row_type_b& is_vertex_an_edge_e
                     }
 
                     //if we reach a certain maximum length also add it
-                    double max_length_thresh=m_max_length_horizontal_edge/mesh.D(edge.get_start_idx());  //so the edges that are further away will be shorter
+                    double max_length_thresh;
+                    if(m_adaptive_edge_length){
+                        max_length_thresh=m_max_length_horizontal_edge/mesh.D(idx); //so the edges that are further away will be shorter
+                    }else{
+                        max_length_thresh=m_max_length_horizontal_edge;
+                    }
+
+
                     if (edge.get_length()>max_length_thresh){
                         edges_vec.push_back(edge);
                         edge.stop_and_continue();

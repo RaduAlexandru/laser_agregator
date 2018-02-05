@@ -39,6 +39,7 @@ Gui::Gui(std::shared_ptr<Core> core,
     init_style();
 
     m_bg_color = ImColor(51, 51, 51, 255);
+    m_mesh_color = ImColor(255, 215, 85, 255);
     foo[0].x = -1;
 }
 
@@ -87,11 +88,16 @@ void Gui::update() {
        ImGui::SliderFloat("shininess", &m_view->core.shininess, 0.001f, 2.0f);
        ImGui::SliderFloat("lighting_factor", &m_view->core.lighting_factor, 0.0f, 2.0f);
        ImGui::SliderFloat("point_size", &m_view->core.point_size, 1.0, 7.0);
+       ImGui::SliderFloat("line_width", &m_view->core.line_width, 0.1, 10.0);
        if(ImGui::SliderFloat("m_cap_max_y", &m_core->m_cap_max_y, 0.1f, 50.0f)){
            m_core->m_visualization_should_change=true;
        }
        if(ImGui::ColorEdit3("Bg color", (float*)&m_bg_color)){
            m_view->core.background_color << m_bg_color.x , m_bg_color.y, m_bg_color.z;
+       }
+       if(ImGui::ColorEdit3("Mesh color", (float*)&m_mesh_color)){
+           m_core->m_mesh_color << m_mesh_color.x , m_mesh_color.y, m_mesh_color.z;
+           m_core->m_visualization_should_change=true;
        }
 
     }
@@ -102,10 +108,16 @@ void Gui::update() {
         if(ImGui::Checkbox("Improve mesh", &m_core->m_mesher->m_improve_mesh)){
             m_core->recompute_mesher();
         }
+        if(ImGui::Checkbox("Adaptive edge length", &m_core->m_mesher->m_adaptive_edge_length)){
+            m_core->recompute_mesher();
+        }
         if (ImGui::SliderInt("m_min_length_horizontal_edge", &m_core->m_mesher->m_min_length_horizontal_edge, 0, 5)) {
            m_core->recompute_mesher();
        }
        if (ImGui::SliderInt("m_max_length_horizontal_edge", &m_core->m_mesher->m_max_length_horizontal_edge, 0, 400)) {
+           m_core->recompute_mesher();
+       }
+       if (ImGui::SliderFloat("m_edge_merge_thresh", &m_core->m_mesher->m_edge_merge_thresh, 0.0, 0.98)) {
            m_core->recompute_mesher();
        }
         if (ImGui::SliderFloat("m_min_grazing", &m_core->m_mesher->m_min_grazing, 0.0f, 1.0f)) {
@@ -117,17 +129,32 @@ void Gui::update() {
        if (ImGui::SliderFloat("m_min_tri_quality", &m_core->m_mesher->m_min_tri_quality, 0.0f, 2.0f)) {
            m_core->recompute_mesher();
        }
+       if (ImGui::SliderInt("m_smoothing_iters", &m_core->m_mesher->m_smoothing_iters, 0, 5)) {
+           m_core->recompute_mesher();
+       }
+       if (ImGui::SliderFloat("m_smoothing_max_movement", &m_core->m_mesher->m_smoothing_max_movement, 0, 5)) {
+           m_core->recompute_mesher();
+       }
+       if (ImGui::SliderFloat("m_smoothing_stepsize", &m_core->m_mesher->m_smoothing_stepsize, -1.0f, 1.0f)) {
+           m_core->recompute_mesher();
+       }
     }
 
 
     ImGui::Separator();
     if (ImGui::CollapsingHeader("Misc")) {
         ImGui::SliderInt("log_level", &loguru::g_stderr_verbosity, -3, 9);
+        ImGui::InputInt("m_decimation_nr_faces", &m_core->m_decimation_nr_faces);
+        ImGui::InputFloat("m_decimation_cost_thresh", &m_core->m_decimation_cost_thresh,  0, 0, 2);
+        if (ImGui::Button("Decimate mesh")){
+            m_core->decimate(m_core->m_scene, m_core->m_decimation_nr_faces, m_core->m_decimation_cost_thresh);
+        }
     }
 
     ImGui::Separator();
     if (ImGui::CollapsingHeader("Movies")) {
-        ImGui::InputFloat("m_animation_time", &m_core->m_animation_time, 0, 0, 2);
+        ImGui::InputFloat("m_animation_time", &m_core->m_animation_time, 0, 0, 2); // the 2 is for 2 decimals precision
+        ImGui::SliderInt("m_magnification", &m_core->m_magnification, 1, 3);
         ImGui::InputText("results_path", m_core->m_results_path, IM_ARRAYSIZE(m_core->m_results_path));
         if (ImGui::Button("Write Single PNG")){
             m_core->write_single_png();
@@ -139,10 +166,24 @@ void Gui::update() {
             m_core->write_orbit_png();
         }
 
-
         if (ImGui::Button("Dummy orbit")){
             m_core->orbit();
         }
+        if (ImGui::Button("Play and record")){
+            m_core->m_write_viewer_at_end_of_pipeline^=1;
+
+            m_core->m_player_should_do_one_step=true;
+            //if it's paused, then start it
+            if (m_core->m_player->is_paused()){
+                m_core->m_player->pause();
+            }
+            m_core->m_player_should_continue_after_step ^= 1;
+        }
+        if (m_core->m_write_viewer_at_end_of_pipeline){
+            ImGui::SameLine();
+            ImGui::Text("Recording");
+        }
+
     }
 
 
@@ -172,6 +213,10 @@ void Gui::update() {
             m_core->m_scene.apply_transform(m_core->m_tf_worldGL_worldROS);
             m_core->m_visualization_should_change=true;
         }
+        if (ImGui::Button("Subsample points")){
+            m_core->subsample_points();
+            m_core->m_visualization_should_change=true;
+        }
 
         ImGui::InputText("exported filename", m_core->m_exported_filename, IM_ARRAYSIZE(m_core->m_exported_filename));
         if (ImGui::Button("Write PLY")){
@@ -182,7 +227,7 @@ void Gui::update() {
         }
     }
 
-
+    ImGui::Separator();
     ImGui::Text(("Nr of points: " + format_with_commas(m_core->m_scene.V.rows())).data());
     ImGui::Text(("Nr of triangles: " + format_with_commas(m_core->m_scene.F.rows())).data());
     ImGui::Text("Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);

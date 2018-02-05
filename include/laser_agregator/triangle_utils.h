@@ -12,7 +12,7 @@
 void read_mesh_with_uv_seam(std::string filename, Eigen::MatrixXd& V,
                             Eigen::MatrixXi& F);
 
-void write_viewer_to_png(igl::viewer::Viewer &v, std::string file_path);
+void write_viewer_to_png(igl::viewer::Viewer &v, std::string file_path, int magnification=1);
 
 void mesh_cat(const Eigen::MatrixXd &V1, const Eigen::MatrixXi &F1,
               const Eigen::MatrixXd &V2, const Eigen::MatrixXi &F2,

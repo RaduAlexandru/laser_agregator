@@ -57,6 +57,7 @@ public:
     float m_min_tri_quality;
     bool m_create_faces;
     bool m_improve_mesh;
+    bool m_adaptive_edge_length;
 
     //triangle params
     bool m_triangle_silent;

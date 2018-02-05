@@ -46,6 +46,9 @@
 #include <GL/glad.h>
 #include <GLFW/glfw3.h>
 
+//decimate
+#include <igl/qslim.h>
+
 
 //boost
 #include <boost/filesystem.hpp>
@@ -64,11 +67,16 @@ Core::Core(std::shared_ptr<igl::viewer::Viewer> view, std::shared_ptr<Profiler> 
         m_player_should_do_one_step(false),
         m_player_should_continue_after_step(false),
         m_visualization_should_change(false),
+        m_mesh_color(1.0, 215.0/255.0, 85.0/255.0),
         m_color_type(6),
         m_cap_max_y(20),
         m_nr_callbacks(0),
         m_animation_time(7),
-        m_orbit_frame_counter(0){
+        m_orbit_frame_counter(0),
+        m_write_viewer_at_end_of_pipeline(false),
+        m_magnification(1),
+        m_decimation_nr_faces(10000),
+        m_decimation_cost_thresh(0.5){
 
     m_view = view;
     m_profiler=profiler;
@@ -94,6 +102,18 @@ void Core::update() {
     if (m_agregator->is_modified() || m_visualization_should_change) {
 
         LOG_F(INFO, "Core:: saw that the scene was modified");
+
+        if(m_write_viewer_at_end_of_pipeline){
+            fs::path dir (m_results_path);
+            fs::path png_name (std::to_string(m_orbit_frame_counter)+".png");
+            fs::path full_path = dir / png_name;
+            fs::create_directory(dir);
+            VLOG(2) << "core recording frame nr " << m_orbit_frame_counter;
+            write_viewer_to_png(*m_view, full_path.string(), m_magnification);  //writing has to be done from the main thread because it calls opengl stuff
+            m_orbit_frame_counter++;
+        }else{
+            m_orbit_frame_counter=0; // the recording was stopped so we set everything back to 0
+        }
 
         if(m_agregator->is_modified() && m_player->is_paused() &&  m_player_should_continue_after_step){
             m_player_should_do_one_step=true; //so that when it starts the callback it puts the bag back into pause
@@ -259,12 +279,17 @@ void Core::callback(const sensor_msgs::CompressedImageConstPtr& img_msg, const s
     // V_all=V_new;
     // NV_all=NV_new;
 
-    std::cout << "callback_agregate_all finished" << '\n';
+    // std::cout << "callback_agregate_all finished" << '\n';
 
-    if(m_player->is_paused() &&  m_player_should_continue_after_step){
-        m_player_should_do_one_step=true; //so that when it starts the callback it puts the bag back into pause
-        m_player->pause(); //starts the bag
-    }
+    //by recording from here we will have a delay of one frame because this local mesh has not been updated in the viewew. Not too much of a problem though
+
+
+
+
+    // if(m_player->is_paused() &&  m_player_should_continue_after_step){
+    //     m_player_should_do_one_step=true; //so that when it starts the callback it puts the bag back into pause
+    //     m_player->pause(); //starts the bag
+    // }
 
 }
 
@@ -412,7 +437,6 @@ void Core::set_edges(Mesh &mesh) {
 
 
 Eigen::MatrixXd Core::color_points(const Mesh& mesh)const{
-    std::cout << "colot point with m_color_type " << m_color_type << '\n';
     Eigen::MatrixXd C = mesh.V;
     double min_y, max_y;
     min_y = mesh.V.col(1).minCoeff();
@@ -455,7 +479,7 @@ Eigen::MatrixXd Core::color_points(const Mesh& mesh)const{
 
     //AO
     }else if(m_color_type==4){
-        int num_samples=100;
+        int num_samples=500;
         Eigen::VectorXd ao;
         igl::embree::EmbreeIntersector ei;
         ei.init(mesh.V.cast<float>(),mesh.F.cast<int>());
@@ -473,9 +497,9 @@ Eigen::MatrixXd Core::color_points(const Mesh& mesh)const{
 
     //GOLD
     }else if(m_color_type==6) {
-        C.col(0).setConstant(igl::GOLD_DIFFUSE[0]);
-        C.col(1).setConstant(igl::GOLD_DIFFUSE[1]);
-        C.col(2).setConstant(igl::GOLD_DIFFUSE[2]);
+        C.col(0).setConstant(m_mesh_color(0));
+        C.col(1).setConstant(m_mesh_color(1));
+        C.col(2).setConstant(m_mesh_color(2));
     }
 
     return C;
@@ -629,17 +653,31 @@ void Core::create_transformation_matrices(){
 }
 
 
+//from a mesh destroy half of the points at random (useful for visualizing jet colored point clouds that are very dense)
+void Core::subsample_points(){
+    row_type_b need_to_be_deleted(m_scene.V.rows(),false);
+    for (size_t i = 0; i < m_scene.V.rows()/2; i++) {
+        int idx_to_delete= rand_int(0, m_scene.V.rows()-1);
+        need_to_be_deleted[idx_to_delete]=true;
+    }
+    row_type_i V_indir;
+    m_scene.V=filter_return_indirection(V_indir, m_scene.V, need_to_be_deleted, false);
+    m_scene.F=filter_apply_indirection(V_indir, m_scene.F);
+}
 
 void Core::write_single_png(){
     fs::path dir (m_results_path);
     fs::path png_name (m_single_png_filename);
     fs::path full_path = dir / png_name;
+    fs::create_directory(dir);
     std::cout << " write_single_png: " << full_path << std::endl;
+
+    write_viewer_to_png(*m_view, full_path.string(), m_magnification);
 
 }
 
 void Core::init_orbit(int& nr_steps, Eigen::Matrix3f& rotation_increment){
-    int fps=30;
+    int fps=25;
     nr_steps= fps*m_animation_time;   // I have 30 frames/second and x second at my disposal, how many frames will there be?
 
     //we have 360 degrees to take in nr_steps, how big should each rotation matrix be
@@ -675,11 +713,11 @@ void Core::make_incremental_step_in_orbit(const Eigen::Matrix3f& rotation_increm
 
 void Core::write_orbit_png(){
 
+    m_orbit_frame_counter=0;
     fs::path dir (m_results_path);
     fs::path png_name (std::to_string(m_orbit_frame_counter)+".png");
     fs::path full_path = dir / png_name;
-    if (boost::filesystem::create_directory(dir))
-        std::cout << "Success" << "\n";
+    fs::create_directory(dir);
 
     int nr_steps;
     Eigen::Matrix3f rotation_increment;
@@ -691,11 +729,33 @@ void Core::write_orbit_png(){
         full_path = dir / png_name;
 
         std::cout << "writeing viewer buffer to the png " << full_path << '\n';
-        write_viewer_to_png(*m_view, full_path.string() );
+        write_viewer_to_png(*m_view, full_path.string(), m_magnification );
 
         m_orbit_frame_counter++;
     }
     m_orbit_frame_counter=0;
 
 
+}
+
+
+void Core::decimate(Mesh& mesh, const int nr_target_faces, const float decimation_cost_thresh){
+
+    // delete degenerate faces
+    std::vector<bool> is_face_degenerate(mesh.F.rows(),false);
+    double eps=1e-5;
+    for (size_t i = 0; i < mesh.F.rows(); i++) {
+        double dif_0= (mesh.V.row(mesh.F(i,0)) - mesh.V.row(mesh.F(i,1))).norm();
+        double dif_1= (mesh.V.row(mesh.F(i,1)) - mesh.V.row(mesh.F(i,2))).norm();
+        double dif_2= (mesh.V.row(mesh.F(i,2)) - mesh.V.row(mesh.F(i,0))).norm();
+        if( dif_0 < eps || dif_1 < eps || dif_2 < eps ){
+            is_face_degenerate[i]=true;
+        }
+    }
+    mesh.F=filter(mesh.F, is_face_degenerate, false);
+
+    //decimate it
+    Eigen::VectorXi I;
+    Eigen::VectorXi J;
+    igl::qslim(mesh.V, mesh.F, nr_target_faces,  mesh.V, mesh.F, J,I);
 }

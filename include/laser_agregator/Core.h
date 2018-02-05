@@ -109,6 +109,7 @@ public:
       };
     float m_cap_max_y;
     float m_point_size;
+    Eigen::Vector3f m_mesh_color;
 
 
     //transforms
@@ -127,11 +128,19 @@ public:
     char m_results_path[256] = "./results/";
     char m_single_png_filename[64] = "img.png";
     int m_orbit_frame_counter;
+    bool m_write_viewer_at_end_of_pipeline;
+    int m_magnification;
     void write_single_png();
     void write_orbit_png();  //does a full orbit and writes pngs after each incremental step
     void init_orbit(int& nr_steps, Eigen::Matrix3f& rotation_increment);
     void orbit();  // does a full robit but doesn't write anything
     void make_incremental_step_in_orbit(const Eigen::Matrix3f& rotation_increment);  // does a small step corresponding to an orbit
+    void subsample_points();
+
+    //decimate
+    int m_decimation_nr_faces;
+    float m_decimation_cost_thresh;
+    void decimate(Mesh& mesh, const int nr_target_faces, const float decimation_cost_thresh);
 
 private:
 

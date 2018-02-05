@@ -54,6 +54,7 @@ private:
 
 
     ImVec4 m_bg_color;
+    ImVec4 m_mesh_color;
 
     ImVec2 foo[10];
 

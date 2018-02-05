@@ -331,10 +331,9 @@ int count_flips(const Eigen::MatrixXd &V,
   return flip_idx.size();
 }
 
-void write_viewer_to_png(igl::viewer::Viewer &viewer, std::string file_path) {
+void write_viewer_to_png(igl::viewer::Viewer &viewer, std::string file_path, int magnification) {
     int width  = std::round(viewer.core.viewport(2));
     int height = std::round(viewer.core.viewport(3));
-    int magnification=1;
   Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>
       R(width*magnification , height*magnification );
   auto G = R, B = R, A = R;
@@ -352,7 +351,6 @@ void triangle_improving_edge_flip(const Eigen::MatrixXd &V,
                                   Eigen::MatrixXi &EV,
                                   Eigen::VectorXi &EMAP_vec)  {
 
-  std::cout << "starting triangle_improving_edge_flip3" << '\n';
   using namespace Eigen;
   using namespace std;
   //          e0                 e0
@@ -476,8 +474,8 @@ void triangle_improving_edge_flip(const Eigen::MatrixXd &V,
     int marker = std::get<2>(chosen_edge);
 
     if (q_improv <= 1e-7){
-        std::cout << "no possible improbement, best is " << q_improv << '\n';
-        std::cout << "finished with nr of flips " << nr_of_flips_done << '\n';
+        // std::cout << "no possible improbement, best is " << q_improv << '\n';
+        // std::cout << "finished with nr of flips " << nr_of_flips_done << '\n';
         break; // No possible improvement.
     }
     // time stamp and manifold check

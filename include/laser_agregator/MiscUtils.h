@@ -82,6 +82,11 @@ inline float rand_float(float a, float b) {
     return a + r;
 }
 
+//random int between a and b (includes a and b)
+inline int rand_int(int a, int b) {
+    return rand()%(b-a + 1) + a;
+}
+
 inline Eigen::Vector3d random_color() {
     Eigen::Vector3d color;
     color(0) = rand_float(0.0, 1.0);

@@ -7,6 +7,8 @@
 
 //My stuff
 #include "laser_agregator/Core.h"
+#include "laser_agregator/Agregator.h"
+#include "laser_agregator/Mesher.h"
 #include "laser_agregator/Profiler.h"
 #include "laser_agregator/RosBagPlayer.h"
 #include "laser_agregator/MiscUtils.h"
@@ -120,7 +122,13 @@ void Gui::update() {
        if (ImGui::SliderFloat("m_edge_merge_thresh", &m_core->m_mesher->m_edge_merge_thresh, 0.0, 0.98)) {
            m_core->recompute_mesher();
        }
-        if (ImGui::SliderFloat("m_min_grazing", &m_core->m_mesher->m_min_grazing, 0.0f, 1.0f)) {
+       if(ImGui::Checkbox("m_do_random_edge_stopping", &m_core->m_mesher->m_do_random_edge_stopping)){
+           m_core->recompute_mesher();
+       }
+       if (ImGui::SliderFloat("m_random_edge_stopping_thresh", &m_core->m_mesher->m_random_edge_stopping_thresh, 0.0f, 1.0f)) {
+           m_core->recompute_mesher();
+       }
+       if (ImGui::SliderFloat("m_min_grazing", &m_core->m_mesher->m_min_grazing, 0.0f, 1.0f)) {
            m_core->recompute_mesher();
        }
        if (ImGui::SliderFloat("m_max_tri_length", &m_core->m_mesher->m_max_tri_length, 0.0f, 20.0f)) {
@@ -138,6 +146,22 @@ void Gui::update() {
        if (ImGui::SliderFloat("m_smoothing_stepsize", &m_core->m_mesher->m_smoothing_stepsize, -1.0f, 1.0f)) {
            m_core->recompute_mesher();
        }
+    }
+
+    ImGui::Separator();
+    if (ImGui::CollapsingHeader("Agregator")) {
+        ImGui::Checkbox("m_do_agregation", &m_core->m_agregator->m_do_agregation);
+        ImGui::InputText("pwn_path", m_core->m_agregator->m_pwn_path, IM_ARRAYSIZE(m_core->m_agregator->m_pwn_path));
+        if (ImGui::Button("Write PWN")){
+            m_core->m_agregator->write_pwn();
+        }
+        ImGui::SameLine();
+        ImGui::InputText("", m_core->m_agregator->m_pwn_filename, IM_ARRAYSIZE(m_core->m_agregator->m_pwn_filename));
+        if (ImGui::Button("See agregated cloud")){
+            m_core->m_scene.clear();
+            m_core->m_scene.V=m_core->m_agregator->V_agregated.block(0,0, m_core->m_agregator->m_nr_points_agregated,3);
+            m_core->m_visualization_should_change=true;
+        }
     }
 
 

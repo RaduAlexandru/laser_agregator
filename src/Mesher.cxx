@@ -52,7 +52,9 @@ Mesher::Mesher() :
         m_min_tri_quality(0.015),
         m_create_faces(true),
         m_improve_mesh(true),
-        m_adaptive_edge_length(true){
+        m_adaptive_edge_length(true),
+        m_do_random_edge_stopping(true),
+        m_random_edge_stopping_thresh(0.9){
 
     init_params();
 
@@ -511,11 +513,23 @@ Eigen::MatrixXi Mesher::create_edges(Mesh& mesh, row_type_b& is_vertex_an_edge_e
                         edge.set_end_idx(idx);
                     }else{
                         //there is a discontinuity and we add this edge as a final one
-                        edges_vec.push_back(edge);
-                        //now the new edge has to become the current one since that is the one that start a new surface (there was a discontiuity)
+                        // edges_vec.push_back(edge);
+                        // //now the new edge has to become the current one since that is the one that start a new surface (there was a discontiuity)
+                        // edge.copy(new_edge);
+                        // edge.stop_and_continue();
+                        // continue;
+
+
+                        //attempt 2 in which we create adyacent points near the endpoints
+                        //this edge has a discontinuity with the next one
+                        //we create a poit ner the endpoint of this one and mark the next one so that it creates also an edge at the beggining
+                        new_edge.need_to_split_at_beggining=true;
+                        edge.need_to_split_at_finale=true;
+                        edge.push_into_vec(edges_vec);
                         edge.copy(new_edge);
-                        edge.stop_and_continue();
+                        // edge.stop_and_continue();
                         continue;
+
                     }
 
                     //if we reach a certain maximum length also add it
@@ -528,14 +542,25 @@ Eigen::MatrixXi Mesher::create_edges(Mesh& mesh, row_type_b& is_vertex_an_edge_e
 
 
                     if (edge.get_length()>max_length_thresh){
-                        edges_vec.push_back(edge);
+                        edge.push_into_vec(edges_vec);
                         edge.stop_and_continue();
                     }
+
+
+                    // //at each step we check if the edge should stop here randomly
+                    // if(m_do_random_edge_stopping){
+                    //     float val=rand_float(0.0 ,1.0);
+                    //     if(val>m_random_edge_stopping_thresh){
+                    //         edges_vec.push_back(edge);
+                    //         edge.stop_and_continue();
+                    //     }
+                    // }
+
 
                 }
             }else{
                 //we found a point that is not a border so we can just add whatever we have until now
-                edges_vec.push_back(edge);
+                edge.push_into_vec(edges_vec);
                 edge.invalidate();
 
             }
@@ -543,7 +568,7 @@ Eigen::MatrixXi Mesher::create_edges(Mesh& mesh, row_type_b& is_vertex_an_edge_e
 
         }
         //we reached the edge of the cloud, and we are switching to the next row, add what ever edge you have until now
-        edges_vec.push_back(edge);
+        edge.push_into_vec(edges_vec);
         edge.invalidate();
 
     }

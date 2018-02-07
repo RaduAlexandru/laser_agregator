@@ -31,7 +31,7 @@ public:
     void init_params();
     void agregate(const Mesh& local_mesh);
     void passthrough(const Mesh& local_mesh);
-
+    void write_pwn();
 
 
 
@@ -43,19 +43,25 @@ public:
     //objects
 
 
-
+    //params
+    bool m_do_agregation;
 
     int nr_of_agregations;
+    char m_pwn_path[256] = "/media/alex/Data/Master/SHK/c_ws/src/laser_agregator/pwn_clouds";
+    char m_pwn_filename[64] = "cloud.pwn";
 
     //misc
     bool m_show_prev_scene;
     bool m_show_last_two_scenes;
 
     //databasse
+    Eigen::MatrixXd V_agregated;
+    Eigen::MatrixXd NV_agregated;
     std::vector<Scene> m_scenes;
     int m_finished_scene_idx; //idx pointing to the most recent finished scene
     int m_working_scene_idx; //idx poiting to the scene we are currently working on
     std::atomic<bool> m_scene_is_modified;
+    int m_nr_points_agregated;
 
     std::shared_ptr<Profiler> m_profiler;
 

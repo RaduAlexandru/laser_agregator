@@ -58,6 +58,8 @@ public:
     bool m_create_faces;
     bool m_improve_mesh;
     bool m_adaptive_edge_length;
+    bool m_do_random_edge_stopping;
+    float m_random_edge_stopping_thresh;
 
     //triangle params
     bool m_triangle_silent;

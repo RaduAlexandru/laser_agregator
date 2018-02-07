@@ -9,7 +9,6 @@
 //My stuff
 #include "laser_agregator/Mesh.h"
 #include "laser_agregator/Scene.h"
-#include "laser_agregator/Mesher.h"
 
 
 

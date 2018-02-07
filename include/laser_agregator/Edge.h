@@ -29,10 +29,15 @@ public:
     int get_start_idx();
     int get_end_idx();
 
+    void push_into_vec(std::vector<Edge>& edges_vec);
+
+    bool need_to_split_at_beggining;
+    bool need_to_split_at_finale;
+
 private:
     Mesh& m_mesh;
     Eigen::Vector2i m_edge;
     Eigen::Vector3d m_first_dir;   //the first time the edge becomes valid (have te two points) it will set the dir. It shouldn't be computed each time the edge gets updated otherwise it would slowly deviate from the first initial direction
-    int m_length;
+    int m_length; //represent the nr of segment (so an edge with two consecutive points will have length 1)
 
 };

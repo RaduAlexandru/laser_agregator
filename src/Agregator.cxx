@@ -14,20 +14,31 @@
 #include <igl/per_face_normals.h>
 #include <igl/remove_unreferenced.h>
 
-
-
 //ros
 #include <ros/ros.h>
 #include "laser_agregator/RosTools.h"
+
+//boost
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
 
 
 Agregator::Agregator():
         m_scenes(NUM_SCENES_BUFFER),
         m_scene_is_modified(false),
         m_finished_scene_idx(-1),
-        m_working_scene_idx(0){
+        m_working_scene_idx(0),
+        m_nr_points_agregated(0),
+        m_do_agregation(true){
 
     init_params();
+
+    //reserve a big chng of it so we don't need to resize the matrices
+    int nr_prealocated_points=50000000;
+    V_agregated.resize(nr_prealocated_points,3);
+    NV_agregated.resize(nr_prealocated_points,3);
+    V_agregated.setZero();
+    NV_agregated.setZero();
 
     nr_of_agregations=0;
 
@@ -53,6 +64,16 @@ void Agregator::agregate(const Mesh& local_mesh){
 
 
     //agregate V and NV
+    if(m_do_agregation){
+        int nr_new_vertices=local_mesh.V.rows();
+        if(  (m_nr_points_agregated+nr_new_vertices) > V_agregated.rows()){
+            LOG(WARNING) << "Not agregating since the buffer is already full";
+        }else{
+            V_agregated.block(m_nr_points_agregated,0, nr_new_vertices, 3)=local_mesh.V;
+            NV_agregated.block(m_nr_points_agregated,0, nr_new_vertices, 3)=local_mesh.NV;
+            m_nr_points_agregated+=nr_new_vertices;
+        }
+    }
 
 
     //also store the last agregated mesh
@@ -97,7 +118,24 @@ void Agregator::naive_fuse(Scene& scene, const Mesh& local_mesh){
     scene.add(local_mesh);
 }
 
+void Agregator::write_pwn(){
+    //open a file and write all the points as pwn file
+    fs::path dir (m_pwn_path);
+    fs::path pwn_name (m_pwn_filename);
+    fs::path full_path = dir / pwn_name;
+    fs::create_directory(dir);
 
+    std::ofstream myfile;
+    myfile.open (full_path.string());
+    myfile << m_nr_points_agregated << "\n";
+    for (size_t i = 0; i < m_nr_points_agregated; i++) {
+        myfile << V_agregated(i,0) << " " << V_agregated(i,1) << " " << V_agregated(i,2) << "\n";
+    }
+    for (size_t i = 0; i < m_nr_points_agregated; i++) {
+        myfile << NV_agregated(i,0) << " " << NV_agregated(i,1) << " " << NV_agregated(i,2) << "\n";
+    }
+    myfile.close();
+}
 
 //TODO may introduce a racing condition because between changing the bool to false it may be changed again to true by the other thread
 Scene Agregator::get_last_agregated_mesh() {

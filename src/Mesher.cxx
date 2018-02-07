@@ -48,7 +48,7 @@ Mesher::Mesher() :
         m_edge_grazing_angle_thresh_horizontal(0.95),
         m_edge_grazing_angle_thresh_vertical(0.9),
         m_min_grazing(0.075),
-        m_max_tri_length(8),
+        m_max_tri_length(6.5),
         m_min_tri_quality(0.015),
         m_create_faces(true),
         m_improve_mesh(true),
@@ -101,6 +101,12 @@ Mesh Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
     delaunay(mesh, is_vertex_an_edge_endpoint);
 
 
+    if(m_improve_mesh) improve_mesh(mesh);
+    igl::per_face_normals(mesh.V, mesh.F, mesh.N_faces);
+    remove_faces_with_low_confidence(mesh);
+
+
+
 
     //remove unreferenced vertices to get rid also of the ones at 0,0,0
     row_type_b is_vertex_referenced(mesh.V.rows(),false);
@@ -115,14 +121,6 @@ Mesh Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
     mesh.D=filter(mesh.D, is_vertex_referenced,true);
     mesh.F=filter_apply_indirection(V_indir, mesh.F);
     mesh.E=filter_apply_indirection(V_indir, mesh.E);
-
-
-
-    if(m_improve_mesh) improve_mesh(mesh);
-    igl::per_face_normals(mesh.V, mesh.F, mesh.N_faces);
-    remove_faces_with_low_confidence(mesh);
-
-
 
     igl::per_vertex_normals(mesh.V, mesh.F, mesh.NV);
 

@@ -136,8 +136,9 @@ void Core::update() {
         if (m_show_points) {
             set_points(m_scene);
         }
-
-
+        if (m_show_edges) {
+            set_edges(m_scene);
+        }
 
 
         m_visualization_should_change=false;
@@ -224,7 +225,11 @@ void Core::callback(const sensor_msgs::CompressedImageConstPtr& img_msg, const s
 
     Eigen::Affine3d sensor_pose;
     if (!get_pose_at_timestamp(sensor_pose,m_last_timestamp) ){
-                LOG(WARNING) << "Not found any pose at timestamp " << m_last_timestamp << " Discarding mesh";
+        LOG(WARNING) << "Not found any pose at timestamp " << m_last_timestamp << " Discarding mesh";
+        if(m_player->is_paused() &&  m_player_should_continue_after_step){ //need to lso continue from here because the core will not update and therefore the bag will remain stopped
+            m_player_should_do_one_step=true; //so that when it starts the callback it puts the bag back into pause
+            m_player->pause(); //starts the bag
+        }
         return;
     }
 

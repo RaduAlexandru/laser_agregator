@@ -68,7 +68,7 @@ Core::Core(std::shared_ptr<igl::viewer::Viewer> view, std::shared_ptr<Profiler> 
         m_player_should_continue_after_step(false),
         m_visualization_should_change(false),
         m_mesh_color(1.0, 215.0/255.0, 85.0/255.0),
-        m_color_type(6),
+        m_color_type(7),
         m_cap_max_y(20),
         m_nr_callbacks(0),
         m_animation_time(7),
@@ -244,7 +244,7 @@ void Core::callback(const sensor_msgs::CompressedImageConstPtr& img_msg, const s
     // m_mesher->remove_faces_with_low_confidence(local_mesh);
 
     //create one with subsampled points
-    m_mesher->simplify(cloud);
+    m_mesher->compute_mesh(cloud);
     local_mesh=m_mesher->get_mesh();
 
 
@@ -324,7 +324,7 @@ void Core::recompute_mesher(){
     std::unique_lock<std::mutex> lock(m_mutex_recon, std::try_to_lock);
     if(lock.owns_lock()) {
         VLOG(2) << "recompute mesher has lock";
-        m_mesher->simplify(m_last_cloud);
+        m_mesher->compute_mesh(m_last_cloud);
         Mesh local_mesh = m_mesher->get_mesh();
 
         local_mesh.t=m_last_timestamp;
@@ -494,14 +494,41 @@ Eigen::MatrixXd Core::color_points(const Mesh& mesh)const{
         ao=1.0-ao.array(); //a0 is 1.0 in occluded places and 0.0 in non ocluded so we flip it to have 0.0 (dark) in occluded
         C = ao.replicate(1,3);
 
+    //AO(Gold)
+    }else if(m_color_type==5){
+        int num_samples=500;
+        Eigen::VectorXd ao;
+        igl::embree::EmbreeIntersector ei;
+        ei.init(mesh.V.cast<float>(),mesh.F.cast<int>());
+        Eigen::MatrixXd N_vertices;
+        igl::per_vertex_normals(mesh.V, mesh.F, N_vertices);
+        igl::embree::ambient_occlusion(ei, mesh.V, N_vertices, num_samples, ao);
+        ao=1.0-ao.array(); //a0 is 1.0 in occluded places and 0.0 in non ocluded so we flip it to have 0.0 (dark) in occluded
+
+        VLOG(1) << "C is size " << C.rows() << " " << C.cols();
+        VLOG(1) << "ao is size " << ao.rows() << " " << ao.cols();
+        C.col(0).setConstant(m_mesh_color(0));
+        C.col(1).setConstant(m_mesh_color(1));
+        C.col(2).setConstant(m_mesh_color(2));
+        VLOG(1) << "doing multiplication";
+        // C=C.transpose().array().colwise()*ao.array(); // I dunno why it doesnt fucking work
+        for (size_t i = 0; i < C.rows(); i++) {
+            double ao_val=ao(i);
+            for (size_t j = 0; j < C.cols(); j++) {
+                C(i,j)=C(i,j)*ao_val;
+            }
+        }
+
+
+
     //default
-    }else if(m_color_type==5) {
+    }else if(m_color_type==6) {
         C.col(0).setConstant(0.41);
         C.col(1).setConstant(0.58);
         C.col(2).setConstant(0.59);
 
     //GOLD
-    }else if(m_color_type==6) {
+    }else if(m_color_type==7) {
         C.col(0).setConstant(m_mesh_color(0));
         C.col(1).setConstant(m_mesh_color(1));
         C.col(2).setConstant(m_mesh_color(2));

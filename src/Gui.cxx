@@ -110,6 +110,9 @@ void Gui::update() {
         if(ImGui::Checkbox("Improve mesh", &m_core->m_mesher->m_improve_mesh)){
             m_core->recompute_mesher();
         }
+        if(ImGui::Checkbox("Naive mesh", &m_core->m_mesher->m_compute_naive_mesh)){
+            m_core->recompute_mesher();
+        }
         if(ImGui::Checkbox("Adaptive edge length", &m_core->m_mesher->m_adaptive_edge_length)){
             m_core->recompute_mesher();
         }

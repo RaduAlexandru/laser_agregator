@@ -30,11 +30,8 @@ class Edge;
 class Mesher{
 public:
     Mesher();
+    void compute_mesh(pcl::PointCloud<PointXYZIDR>::Ptr cloud);
 
-    Mesh simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud);
-
-
-    Mesh recompute_mesh();
     Mesh get_mesh();
     bool is_modified(){return m_mesh_is_modified;};
 
@@ -60,6 +57,7 @@ public:
     bool m_adaptive_edge_length;
     bool m_do_random_edge_stopping;
     float m_random_edge_stopping_thresh;
+    bool m_compute_naive_mesh;
 
     //triangle params
     bool m_triangle_silent;
@@ -80,13 +78,16 @@ public:
 
 private:
     void init_params();
+    void simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud);
+    void naive_mesh(pcl::PointCloud<PointXYZIDR>::Ptr cloud);
     Eigen::MatrixXd pcl2eigen(pcl::PointCloud<PointXYZIDR>::Ptr cloud);
     void smooth_mesh(Mesh& mesh);
     void improve_mesh(Mesh& mesh);
     void remove_faces_with_low_confidence(Mesh& mesh);
     bool print_non_manifold_edges(std::vector<bool>& is_face_non_manifold, std::vector<bool>& is_vertex_non_manifold, const Eigen::MatrixXi& F_in);
+    void remove_unreferenced_verts(Mesh& mesh);
 
-    void create_simple_mesh(Mesh &mesh, const pcl::PointCloud<PointXYZIDR>::Ptr cloud);
+    void create_naive_mesh(Mesh &mesh, const pcl::PointCloud<PointXYZIDR>::Ptr cloud);
     Eigen::MatrixXi create_edges(Mesh& mesh, row_type_b& is_vertex_an_edge_endpoint);
     void delaunay(Mesh& mesh, const row_type_b& is_vertex_an_edge_endpoint);
 

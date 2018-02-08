@@ -54,7 +54,8 @@ Mesher::Mesher() :
         m_improve_mesh(true),
         m_adaptive_edge_length(true),
         m_do_random_edge_stopping(true),
-        m_random_edge_stopping_thresh(0.9){
+        m_random_edge_stopping_thresh(0.9),
+        m_compute_naive_mesh(false){
 
     init_params();
 
@@ -72,9 +73,16 @@ void Mesher::init_params(){
 }
 
 
+void Mesher::compute_mesh(pcl::PointCloud<PointXYZIDR>::Ptr cloud){
+    if(m_compute_naive_mesh){
+        naive_mesh(cloud);
+    }else{
+        simplify(cloud);
+    }
+}
 
 
-Mesh Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
+void Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
 
     LOG_SCOPE(INFO, "create_mesh");
     TIME_SCOPE("create_mesh");
@@ -106,8 +114,43 @@ Mesh Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
     remove_faces_with_low_confidence(mesh);
 
 
+    remove_unreferenced_verts(mesh);
+    igl::per_vertex_normals(mesh.V, mesh.F, mesh.NV);
 
+    mesh.sanity_check();
+    m_finished_mesh_idx = m_working_mesh_idx;
+    m_working_mesh_idx = (m_working_mesh_idx + 1) % NUM_MESHES_BUFFER;
+    m_mesh_is_modified = true;
 
+}
+
+void Mesher::naive_mesh(pcl::PointCloud<PointXYZIDR>::Ptr cloud){
+    last_cloud = cloud;
+    Mesh &mesh = m_meshes[m_working_mesh_idx];
+    mesh.clear();
+
+    create_naive_mesh(mesh, cloud);
+    VLOG(1) << "after create naive mesh we have nr of verts" << mesh;
+
+    if(m_improve_mesh) {
+        improve_mesh(mesh);
+    }
+    VLOG(1) << "after improve_mesh we have nr of verts" << mesh;
+    igl::per_face_normals(mesh.V, mesh.F, mesh.N_faces);
+    remove_faces_with_low_confidence(mesh);
+    VLOG(1) << "after remove_faces_with_low_confidence we have nr of verts" << mesh;
+
+    remove_unreferenced_verts(mesh);
+    VLOG(1) << "after remove_unreferenced_verts we have " << mesh;
+    igl::per_vertex_normals(mesh.V, mesh.F, mesh.NV);
+
+    mesh.sanity_check();
+    m_finished_mesh_idx = m_working_mesh_idx;
+    m_working_mesh_idx = (m_working_mesh_idx + 1) % NUM_MESHES_BUFFER;
+    m_mesh_is_modified = true;
+}
+
+void Mesher::remove_unreferenced_verts(Mesh& mesh){
     //remove unreferenced vertices to get rid also of the ones at 0,0,0
     row_type_b is_vertex_referenced(mesh.V.rows(),false);
     for (int i = 0; i < mesh.F.rows(); ++i) {
@@ -121,17 +164,6 @@ Mesh Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
     mesh.D=filter(mesh.D, is_vertex_referenced,true);
     mesh.F=filter_apply_indirection(V_indir, mesh.F);
     mesh.E=filter_apply_indirection(V_indir, mesh.E);
-
-    igl::per_vertex_normals(mesh.V, mesh.F, mesh.NV);
-
-    mesh.sanity_check();
-
-    m_finished_mesh_idx = m_working_mesh_idx;
-    m_working_mesh_idx = (m_working_mesh_idx + 1) % NUM_MESHES_BUFFER;
-    m_mesh_is_modified = true;
-
-    return m_meshes[m_finished_mesh_idx];
-
 }
 
 
@@ -378,10 +410,10 @@ bool Mesher::print_non_manifold_edges(std::vector<bool>& is_face_non_manifold, s
 
 
 
-void Mesher::create_simple_mesh(Mesh &mesh, const pcl::PointCloud<PointXYZIDR>::Ptr cloud ) {
+void Mesher::create_naive_mesh(Mesh &mesh, const pcl::PointCloud<PointXYZIDR>::Ptr cloud ) {
 
-    LOG_SCOPE(INFO, "create_simple_mesh");
-    TIME_SCOPE("create_simple_mesh");
+    LOG_SCOPE(INFO, "create_naive_mesh");
+    TIME_SCOPE("create_naive_mesh");
 
     mesh.width = cloud->width;  //intended to make the mesh have size 16x1800
     mesh.height = cloud->height;
@@ -455,12 +487,14 @@ void Mesher::create_simple_mesh(Mesh &mesh, const pcl::PointCloud<PointXYZIDR>::
                 indices.push_back(idx_1);
                 indices.push_back(idx_0);
                 indices.push_back(idx_2);
+                // std::cout << "pushing " << idx_1 << " " << idx_0 << " " << idx_2 << '\n';
             }
 
             if (!trig_2_invalid) {
                 indices.push_back(idx_3);
                 indices.push_back(idx_4);
                 indices.push_back(idx_5);
+                // std::cout << "pushing " << idx_3 << " " << idx_4 << " " << idx_5 << '\n';
             }
 
 
@@ -675,12 +709,6 @@ void Mesher::delaunay(Mesh& mesh, const row_type_b& is_vertex_an_edge_endpoint){
 }
 
 
-
-
-Mesh Mesher::recompute_mesh() {
-    //TODO check if it's already computing something because this function can be called from different threads
-    return simplify(last_cloud);
-}
 
 
 //TODO may introduce a racing condition because between changing the bool to false it may be changed again to true by the other thread

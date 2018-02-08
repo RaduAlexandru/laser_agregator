@@ -96,13 +96,14 @@ public:
     bool m_show_edges;
     int m_color_type;
     bool m_show_sensor_poses;
-    const char* m_color_types_desc[7] =
+    const char* m_color_types_desc[8] =
       {
               "Jet color",
               "Gray scale",
               "Distance to sensor",
               "By idx in the V vector",
               "Ambient occlusion",
+              "AO(Gold)",
               "Default",
               "Gold"
       };

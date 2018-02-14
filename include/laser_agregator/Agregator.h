@@ -22,7 +22,7 @@ namespace igl{ namespace embree{ class EmbreeIntersector; }};
 
 
 
-#define NUM_SCENES_BUFFER 5
+#define NUM_SCENES_BUFFER 2
 
 class Agregator{
 public:
@@ -33,7 +33,8 @@ public:
     void passthrough(const Mesh& local_mesh);
     void write_pwn();
 
-
+    void enable();
+    void disable();
 
     Scene get_last_agregated_mesh();
     bool is_modified(){return m_scene_is_modified;};
@@ -45,6 +46,9 @@ public:
 
     //params
     bool m_do_agregation;
+    bool m_is_enabled;
+    int m_nr_prealocated_points;
+
 
     int nr_of_agregations;
     char m_pwn_path[256] = "/media/alex/Data/Master/SHK/c_ws/src/laser_agregator/pwn_clouds";
@@ -70,6 +74,9 @@ private:
     void update_buffers_with_new_scene(const Scene& scene);  //updates the next scene in the buffer to be also this scene, therefore when we get the next local mesh we will have an updated scene at that working_scene_idx
 
     void naive_fuse(Scene& scene, const Mesh& local_mesh);
+
+    void preallocate();
+    void deallocate();
 };
 
 

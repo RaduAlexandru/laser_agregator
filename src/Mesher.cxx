@@ -583,7 +583,7 @@ Eigen::MatrixXi Mesher::create_edges(Mesh& mesh, row_type_b& is_vertex_an_edge_e
                     // if(m_do_random_edge_stopping){
                     //     float val=rand_float(0.0 ,1.0);
                     //     if(val>m_random_edge_stopping_thresh){
-                    //         edges_vec.push_back(edge);
+                    //         edge.push_into_vec(edges_vec);
                     //         edge.stop_and_continue();
                     //     }
                     // }

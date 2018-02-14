@@ -153,6 +153,14 @@ void Gui::update() {
 
     ImGui::Separator();
     if (ImGui::CollapsingHeader("Agregator")) {
+        if(ImGui::Checkbox("m_is_enabled", &m_core->m_agregator->m_is_enabled)){
+            if(m_core->m_agregator->m_is_enabled){
+                m_core->m_agregator->enable();
+            }else{
+                m_core->m_agregator->disable();
+            }
+        }
+        ImGui::InputInt("m_nr_prealocated_points", &m_core->m_agregator->m_nr_prealocated_points);
         ImGui::Checkbox("m_do_agregation", &m_core->m_agregator->m_do_agregation);
         ImGui::InputText("pwn_path", m_core->m_agregator->m_pwn_path, IM_ARRAYSIZE(m_core->m_agregator->m_pwn_path));
         if (ImGui::Button("Write PWN")){
@@ -163,6 +171,7 @@ void Gui::update() {
         if (ImGui::Button("See agregated cloud")){
             m_core->m_scene.clear();
             m_core->m_scene.V=m_core->m_agregator->V_agregated.block(0,0, m_core->m_agregator->m_nr_points_agregated,3);
+            m_core->m_scene.NV=m_core->m_agregator->NV_agregated.block(0,0, m_core->m_agregator->m_nr_points_agregated,3);
             m_core->m_visualization_should_change=true;
         }
     }
@@ -175,6 +184,7 @@ void Gui::update() {
         ImGui::InputFloat("m_decimation_cost_thresh", &m_core->m_decimation_cost_thresh,  0, 0, 2);
         if (ImGui::Button("Decimate mesh")){
             m_core->decimate(m_core->m_scene, m_core->m_decimation_nr_faces, m_core->m_decimation_cost_thresh);
+            m_core->m_visualization_should_change=true;
         }
     }
 

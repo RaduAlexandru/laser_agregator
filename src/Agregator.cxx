@@ -22,6 +22,9 @@
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
+// ./PoissonRecon --in simplified_700_cloud.ply --out simplified_700_depth_11.ply --depth 11 --density --bType 2 --samplesPerNode 1 --pointWeight 0 --verbose
+
+// ./SSDRecon --in simplified_700_cloud.ply --out simplified_700_depth_11.ply --depth 11 --density --samplesPerNode 10 --valueWeight 30 --gradientWeight 0.00002 --threads 2 --verbose
 
 Agregator::Agregator():
         m_scenes(NUM_SCENES_BUFFER),
@@ -29,16 +32,17 @@ Agregator::Agregator():
         m_finished_scene_idx(-1),
         m_working_scene_idx(0),
         m_nr_points_agregated(0),
-        m_do_agregation(true){
+        m_nr_prealocated_points(30000000),
+        m_do_agregation(true),
+        m_is_enabled(true){
 
     init_params();
 
     //reserve a big chng of it so we don't need to resize the matrices
-    int nr_prealocated_points=50000000;
-    V_agregated.resize(nr_prealocated_points,3);
-    NV_agregated.resize(nr_prealocated_points,3);
-    V_agregated.setZero();
-    NV_agregated.setZero();
+    if(m_is_enabled){
+        preallocate();
+    }
+
 
     nr_of_agregations=0;
 
@@ -136,6 +140,27 @@ void Agregator::write_pwn(){
     }
     myfile.close();
 }
+
+
+void Agregator::enable(){
+    preallocate();
+}
+void Agregator::disable(){
+    deallocate();
+}
+
+void Agregator::preallocate(){
+    V_agregated.resize(m_nr_prealocated_points,3);
+    NV_agregated.resize(m_nr_prealocated_points,3);
+    V_agregated.setZero();
+    NV_agregated.setZero();
+}
+void Agregator::deallocate(){
+    V_agregated.resize(0,0);
+    NV_agregated.resize(0,0);
+    m_nr_points_agregated=0;
+}
+
 
 //TODO may introduce a racing condition because between changing the bool to false it may be changed again to true by the other thread
 Scene Agregator::get_last_agregated_mesh() {

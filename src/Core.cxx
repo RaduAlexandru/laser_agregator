@@ -539,7 +539,13 @@ Eigen::MatrixXd Core::color_points(const Mesh& mesh)const{
 
 void Core::write_ply(){
     strcat (m_exported_filename,".ply");
-    igl::writePLY(m_exported_filename, m_scene.V, m_scene.F);
+    Eigen::MatrixXd UV_empty;
+    if(m_scene.NV.size()){
+        igl::writePLY(m_exported_filename, m_scene.V, m_scene.F, m_scene.NV, UV_empty);
+    }else{
+        igl::writePLY(m_exported_filename, m_scene.V, m_scene.F);
+    }
+
 }
 
 void Core::write_obj(){

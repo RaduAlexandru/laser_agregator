@@ -22,9 +22,6 @@
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
 
-// ./PoissonRecon --in simplified_700_cloud.ply --out simplified_700_depth_11.ply --depth 11 --density --bType 2 --samplesPerNode 1 --pointWeight 0 --verbose
-
-// ./SSDRecon --in simplified_700_cloud.ply --out simplified_700_depth_11.ply --depth 11 --density --samplesPerNode 10 --valueWeight 30 --gradientWeight 0.00002 --threads 2 --verbose
 
 Agregator::Agregator():
         m_scenes(NUM_SCENES_BUFFER),

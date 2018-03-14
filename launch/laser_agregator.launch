@@ -17,6 +17,8 @@
     <param name="cam_frame_left" value="cam_left" />
     <param name="cam_frame_right" value="cam_right" />
 
+    <param name="pose_file" value="/media/alex/Data/Master/SHK/c_ws/src/laser_mesher/data/graph_viewer_scan_poses_00.txt" />
+
     <remap from="/cam_img_0" to="/cam_left/image_raw/compressed" />
     <remap from="/cam_img_1" to="/cam_right/image_raw/compressed" />
     <remap from="/cam_info_0" to="box_detection_node/cam_info" />

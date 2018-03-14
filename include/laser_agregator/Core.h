@@ -78,6 +78,7 @@ public:
     std::string m_frame_cam_right;
     std::vector<std::string> m_cam_img_topics;
     std::vector<std::string> m_cam_info_topics;
+    std::string m_pose_file;
     std::string m_bag_args;
     std::shared_ptr<RosBagPlayer> m_player;
     tf::TransformListener m_tf_listener;

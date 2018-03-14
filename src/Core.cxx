@@ -155,6 +155,7 @@ void Core::init_params() {
     m_frame_world = getParamElseDefault<std::string>(private_nh, "world_frame", "world");
     m_frame_cam_left = getParamElseDefault<std::string>(private_nh, "cam_frame_left", "camera");
     m_frame_cam_right = getParamElseDefault<std::string>(private_nh, "cam_frame_right", "camera");
+    m_pose_file = getParamElseThrow<std::string>(private_nh, "pose_file");
     m_bag_args = getParamElseThrow<std::string>(private_nh, "bag_args");
 
     //verbosity
@@ -273,7 +274,22 @@ void Core::callback(const sensor_msgs::CompressedImageConstPtr& img_msg, const s
     // m_view->data.clear();
     // set_mesh(local_mesh);
 
+
+
+    // //write each local mesh into a file
+    // std::string file_name="./all_local_meshes/" + std::to_string(m_nr_callbacks) + ".ply";
+    // std::cout << "saving to " << file_name << '\n';
+    // Eigen::MatrixXd UV_empty;
+    // igl::writePLY(file_name, local_mesh.V, local_mesh.F, local_mesh.NV, UV_empty);
+
+
+
+
     m_agregator->agregate(local_mesh);
+
+
+
+
 
 
     // //Aggregate all of them
@@ -295,6 +311,8 @@ void Core::callback(const sensor_msgs::CompressedImageConstPtr& img_msg, const s
     //     m_player_should_do_one_step=true; //so that when it starts the callback it puts the bag back into pause
     //     m_player->pause(); //starts the bag
     // }
+
+    m_nr_callbacks++;
 
 }
 
@@ -554,7 +572,7 @@ void Core::write_obj(){
 }
 
 void Core::read_pose_file(){
-    std::ifstream infile( "/media/alex/Data/Master/SHK/c_ws/src/laser_mesher/data/graph_viewer_scan_poses_00.txt" );
+    std::ifstream infile( m_pose_file );
     uint64_t scan_nr;
     uint64_t timestamp;
     Eigen::Vector3d position;

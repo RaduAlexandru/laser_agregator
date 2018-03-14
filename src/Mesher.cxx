@@ -579,14 +579,14 @@ Eigen::MatrixXi Mesher::create_edges(Mesh& mesh, row_type_b& is_vertex_an_edge_e
                     }
 
 
-                    // //at each step we check if the edge should stop here randomly
-                    // if(m_do_random_edge_stopping){
-                    //     float val=rand_float(0.0 ,1.0);
-                    //     if(val>m_random_edge_stopping_thresh){
-                    //         edge.push_into_vec(edges_vec);
-                    //         edge.stop_and_continue();
-                    //     }
-                    // }
+                    //at each step we check if the edge should stop here randomly
+                    if(m_do_random_edge_stopping){
+                        float val=rand_float(0.0 ,1.0);
+                        if(val>m_random_edge_stopping_thresh){
+                            edge.push_into_vec(edges_vec);
+                            edge.stop_and_continue();
+                        }
+                    }
 
 
                 }

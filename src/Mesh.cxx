@@ -131,6 +131,7 @@ void Mesh::to_image(Eigen::Affine3d tf_currframe_alg) {
 
     //TODO can maybe be done more efficiently without the change of frame
     Eigen::MatrixXd V_alg_frame(V.rows(),3);
+    V_alg_frame.setZero();
     Eigen::Affine3d tf_alg_currframe=tf_currframe_alg.inverse(); //this now goes from the current frame to the algorithm frame
     for (size_t i = 0; i < V.rows(); i++) {
         if(!V.row(i).isZero()){

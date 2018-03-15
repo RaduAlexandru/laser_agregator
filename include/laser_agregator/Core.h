@@ -69,6 +69,7 @@ public:
     char m_exported_filename[64] = "./scene";
     uint64_t m_last_timestamp;
     int m_nr_callbacks;
+    int m_skip;
 
 
     //ros
@@ -82,6 +83,7 @@ public:
     std::string m_bag_args;
     std::shared_ptr<RosBagPlayer> m_player;
     tf::TransformListener m_tf_listener;
+    float m_view_direction;
 
 
     bool m_viewer_initialized;
@@ -118,6 +120,8 @@ public:
     Eigen::Affine3d m_tf_baselink_vel;
     Eigen::Affine3d m_tf_worldGL_worldROS;
     std::unordered_map<uint64_t, Eigen::Affine3d> m_worldROS_baselink_map;
+    std::vector<uint64_t>m_timestamps_original_vec;
+    std::unordered_map<uint64_t,int> m_scan_nr_map;
 
     //agregating all info
     Eigen::MatrixXd V_all;
@@ -147,9 +151,11 @@ private:
 
     // void callback(const sensor_msgs::ImageConstPtr& img_msg, const sensor_msgs::CameraInfoConstPtr& cam_info_msg, const sensor_msgs::PointCloud2ConstPtr& cloud_msg);
     //without cam info
-    void callback(const sensor_msgs::CompressedImageConstPtr& img_msg, const sensor_msgs::PointCloud2ConstPtr& cloud_msg);
+    // void callback(const sensor_msgs::CompressedImageConstPtr& img_msg, const sensor_msgs::PointCloud2ConstPtr& cloud_msg);
     // only RGB
     // void callback(const sensor_msgs::CompressedImageConstPtr& img_msg);
+    //only laser
+    void callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg);
     void read_pose_file();
     void create_transformation_matrices();
     bool get_pose_at_timestamp(Eigen::Affine3d& pose, uint64_t timestamp);

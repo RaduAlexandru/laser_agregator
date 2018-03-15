@@ -174,6 +174,7 @@ void Gui::update() {
             m_core->m_scene.NV=m_core->m_agregator->NV_agregated.block(0,0, m_core->m_agregator->m_nr_points_agregated,3);
             m_core->m_visualization_should_change=true;
         }
+        ImGui::SliderInt("m_skip", &m_core->m_skip, 1, 50);
     }
 
 

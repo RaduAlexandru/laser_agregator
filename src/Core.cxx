@@ -76,7 +76,8 @@ Core::Core(std::shared_ptr<igl::viewer::Viewer> view, std::shared_ptr<Profiler> 
         m_write_viewer_at_end_of_pipeline(false),
         m_magnification(1),
         m_decimation_nr_faces(10000),
-        m_decimation_cost_thresh(0.5){
+        m_decimation_cost_thresh(0.5),
+        m_skip(1){
 
     m_view = view;
     m_profiler=profiler;
@@ -156,7 +157,9 @@ void Core::init_params() {
     m_frame_cam_left = getParamElseDefault<std::string>(private_nh, "cam_frame_left", "camera");
     m_frame_cam_right = getParamElseDefault<std::string>(private_nh, "cam_frame_right", "camera");
     m_pose_file = getParamElseThrow<std::string>(private_nh, "pose_file");
+    m_view_direction = getParamElseThrow<float>(private_nh, "view_direction");
     m_bag_args = getParamElseThrow<std::string>(private_nh, "bag_args");
+
 
     //verbosity
     loguru::g_stderr_verbosity = getParamElseDefault<int>(private_nh, "loguru_verbosity", -1);
@@ -187,13 +190,15 @@ void Core::read_data() {
     // sync.registerCallback(boost::bind(&Core::callback,this, _1, _2,_3 ));
 
     //without camera info
-    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::CompressedImage, sensor_msgs::PointCloud2> AsyncPolicy;
-    message_filters::Synchronizer<AsyncPolicy> sync(AsyncPolicy(10), image_sub, cloud_sub);
-    sync.registerCallback(boost::bind(&Core::callback, this, _1, _2));
-
+    // typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::CompressedImage, sensor_msgs::PointCloud2> AsyncPolicy;
+    // message_filters::Synchronizer<AsyncPolicy> sync(AsyncPolicy(10), image_sub, cloud_sub);
+    // sync.registerCallback(boost::bind(&Core::callback, this, _1, _2));
 
     //only rgb
     // ros::Subscriber sub = private_nh.subscribe("/cam_img_0", 1000, &Core::callback, this);
+
+    //only laser
+    ros::Subscriber sub = private_nh.subscribe("/laser", 4, &Core::callback, this);
 
 
 
@@ -204,15 +209,32 @@ void Core::read_data() {
 
 }
 
-void Core::callback(const sensor_msgs::CompressedImageConstPtr& img_msg, const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
+void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
+    // m_last_timestamp=(uint64_t)std::round(cloud_msg->header.stamp.toNSec()/100000000.0);
+    m_last_timestamp=(uint64_t)cloud_msg->header.stamp.toNSec();
+
+    LOG_S(INFO) << "calback----------------------" << cloud_msg->header.stamp.toNSec();
+    LOG_S(INFO) << "rounded timestamp " << m_last_timestamp;
+    auto got = m_scan_nr_map.find (m_last_timestamp/100000000.0);
+    LOG_S(INFO) << "scan_nr " << got->second;
 
 
-    LOG_S(INFO) << "calback------------------------------";
     std::lock_guard<std::mutex> lock(m_mutex_recon);
 
     if(m_player_should_do_one_step){
         m_player_should_do_one_step=false;
         m_player->pause();
+    }
+
+    //skip every X of them
+    if(m_nr_callbacks%m_skip!=0){
+        if(m_player->is_paused() &&  m_player_should_continue_after_step){ //need to lso continue from here because the core will not update and therefore the bag will remain stopped
+            m_player_should_do_one_step=true; //so that when it starts the callback it puts the bag back into pause
+            m_player->pause(); //starts the bag
+        }
+        LOG_S(INFO) << "skip";
+        m_nr_callbacks++;
+        return;
     }
 
 
@@ -222,8 +244,9 @@ void Core::callback(const sensor_msgs::CompressedImageConstPtr& img_msg, const s
     pcl::PointCloud<PointXYZIDR>::Ptr cloud(new pcl::PointCloud<PointXYZIDR>);
     pcl::fromPCLPointCloud2(*temp_cloud, *cloud);
 
-    m_last_timestamp=(uint64_t)std::round(cloud_msg->header.stamp.toNSec()/100000000.0);
 
+
+    // std::cout << "processing tietamp " << m_last_timestamp << '\n';
     Eigen::Affine3d sensor_pose;
     if (!get_pose_at_timestamp(sensor_pose,m_last_timestamp) ){
         LOG(WARNING) << "Not found any pose at timestamp " << m_last_timestamp << " Discarding mesh";
@@ -573,6 +596,10 @@ void Core::write_obj(){
 
 void Core::read_pose_file(){
     std::ifstream infile( m_pose_file );
+    if( !infile  ) {
+        LOG(ERROR) << "Can't open pose file";
+    }
+
     uint64_t scan_nr;
     uint64_t timestamp;
     Eigen::Vector3d position;
@@ -589,23 +616,38 @@ void Core::read_pose_file(){
         Eigen::Affine3d pose;
         pose.matrix().block<3,3>(0,0)=quat.toRotationMatrix();
         pose.matrix().block<3,1>(0,3)=position;
+        m_timestamps_original_vec.push_back(timestamp);
         timestamp=(uint64_t)std::round(timestamp/100000.0); ////TODO this is a dirty hack to reduce the discretization of time because the timestamps don't exactly match
-//        VLOG(2) << "recorded tmestamp is " << timestamp;
-//        VLOG(2) << "recorded scan_nr is " << scan_nr;
         m_worldROS_baselink_map[timestamp]=pose;
+        m_scan_nr_map[timestamp]=scan_nr;
     }
 
 }
 
 bool Core::get_pose_at_timestamp(Eigen::Affine3d& pose, uint64_t timestamp){
 
-    auto got = m_worldROS_baselink_map.find (timestamp);
+    //Brute force through all and choose the closest one
+    int best_timestamp=-1;
+    uint64_t closest_diff_time=9999999;
+    for (size_t i = 0; i < m_timestamps_original_vec.size(); i++) {
+        uint64_t timestamp_rounded=timestamp/1000.0; //need to reduce a bit the precision becuase in the file it's not that big
+        uint64_t diff_time= timestamp_rounded - m_timestamps_original_vec[i];
+        if(diff_time<closest_diff_time){
+            closest_diff_time=diff_time;
+            best_timestamp=m_timestamps_original_vec[i];
+        }
+    }
+    std::cout << "best timestamp would be " << best_timestamp << '\n';
 
-    if ( got == m_worldROS_baselink_map.end() ){
+
+
+    uint64_t timestamp_rounded=(uint64_t)std::round(timestamp/100000000.0);
+    auto pose_pair = m_worldROS_baselink_map.find (timestamp_rounded);
+    if ( pose_pair == m_worldROS_baselink_map.end() ){
         LOG(WARNING) << "get_pose: pose query for the scan does not exist at timestamp" << timestamp;
         return false;
     }else{
-        pose = got->second;
+        pose = pose_pair->second;
 //        VLOG(2) << "returning pose at scan_nr  \n" << pose.matrix();
         return true;
     }
@@ -659,7 +701,8 @@ void Core::create_transformation_matrices(){
     //   * Eigen::AngleAxisd(0.5*M_PI, Eigen::Vector3d::UnitY());   //this rotation is done first. Performed on the Y axis of the velodyne frame (after this the y is pointing left, x is up and z is towards the camera)
     // // m_tf_alg_vel.matrix().block<3,3>(0,0)=rot.transpose();
 
-    alg_vel_rot = Eigen::AngleAxisd(-0.5*M_PI+M_PI, Eigen::Vector3d::UnitY())  //this rotation is done second and rotates around the Y axis of alg frame
+    //make it here to be  Eigen::AngleAxisd(-0.5*M_PI+ M_PI, Eigen::Vector3d::UnitY()
+    alg_vel_rot = Eigen::AngleAxisd(-0.5*M_PI+m_view_direction, Eigen::Vector3d::UnitY())  //this rotation is done second and rotates around the Y axis of alg frame
       * Eigen::AngleAxisd(0.5*M_PI, Eigen::Vector3d::UnitX());   //this rotation is done first. Performed on the X axis of alg frame (after this the y is pointing towards camera, x is right and z is down)
     m_tf_alg_vel.matrix().block<3,3>(0,0)=alg_vel_rot;
 

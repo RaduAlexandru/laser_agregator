@@ -118,6 +118,11 @@ void Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
     igl::per_vertex_normals(mesh.V, mesh.F, mesh.NV);
 
     mesh.sanity_check();
+
+    if(mesh.V.rows()!=mesh.D.rows()){
+        LOG(WARNING) << "If the mesh has more vertices after delaunay it may mean that some of the red edges are overlapping. \n This most likely happened because the \"gap\" in the laser is not set properly. You may need to fiddle with the view direction and view width in the launch file. \n If you look at the mesh in the algorithm frame (before applying all your transformations after meshing) it the gap should be furthest away from the camera, along the negative Z axis. If not then you need to rotate the mesh by 90 degrees around the Y axis by using the m_tf_alg_vel from the Core (see function create_transformation_matrices)";
+    }
+
     m_finished_mesh_idx = m_working_mesh_idx;
     m_working_mesh_idx = (m_working_mesh_idx + 1) % NUM_MESHES_BUFFER;
     m_mesh_is_modified = true;
@@ -625,7 +630,7 @@ Eigen::MatrixXi Mesher::create_edges(Mesh& mesh, row_type_b& is_vertex_an_edge_e
     //convert from the edges vector to the eigen matrix
     edges.resize(edges_vec_filtered.size(), 2);
     edges.setZero();
-    VLOG(1) << "copy stuff into edges";
+    // VLOG(1) << "copy stuff into edges";
     for (size_t i = 0; i < edges_vec_filtered.size(); i ++) {
         edges.row(i)=edges_vec_filtered[i].get_eigen();
     }

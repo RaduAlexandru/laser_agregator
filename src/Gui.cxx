@@ -187,6 +187,7 @@ void Gui::update() {
             m_core->decimate(m_core->m_scene, m_core->m_decimation_nr_faces, m_core->m_decimation_cost_thresh);
             m_core->m_visualization_should_change=true;
         }
+        ImGui::Checkbox("m_exact_pose", &m_core->m_exact_pose);
     }
 
     ImGui::Separator();

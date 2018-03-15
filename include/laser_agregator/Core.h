@@ -121,7 +121,9 @@ public:
     Eigen::Affine3d m_tf_worldGL_worldROS;
     std::unordered_map<uint64_t, Eigen::Affine3d> m_worldROS_baselink_map;
     std::vector<uint64_t>m_timestamps_original_vec;
+    std::vector<Eigen::Affine3d>m_worldROS_baselink_vec;
     std::unordered_map<uint64_t,int> m_scan_nr_map;
+    bool m_exact_pose;
 
     //agregating all info
     Eigen::MatrixXd V_all;

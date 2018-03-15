@@ -160,6 +160,8 @@ void Core::init_params() {
     m_view_direction = getParamElseThrow<float>(private_nh, "view_direction");
     m_bag_args = getParamElseThrow<std::string>(private_nh, "bag_args");
 
+    m_exact_pose=getParamElseDefault<bool>(private_nh, "exact_pose", false);
+
 
     //verbosity
     loguru::g_stderr_verbosity = getParamElseDefault<int>(private_nh, "loguru_verbosity", -1);
@@ -213,10 +215,8 @@ void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
     // m_last_timestamp=(uint64_t)std::round(cloud_msg->header.stamp.toNSec()/100000000.0);
     m_last_timestamp=(uint64_t)cloud_msg->header.stamp.toNSec();
 
-    LOG_S(INFO) << "calback----------------------" << cloud_msg->header.stamp.toNSec();
-    LOG_S(INFO) << "rounded timestamp " << m_last_timestamp;
-    auto got = m_scan_nr_map.find (m_last_timestamp/100000000.0);
-    LOG_S(INFO) << "scan_nr " << got->second;
+    LOG_S(INFO) << "calback----------------------" << m_last_timestamp;
+
 
 
     std::lock_guard<std::mutex> lock(m_mutex_recon);
@@ -249,7 +249,7 @@ void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
     // std::cout << "processing tietamp " << m_last_timestamp << '\n';
     Eigen::Affine3d sensor_pose;
     if (!get_pose_at_timestamp(sensor_pose,m_last_timestamp) ){
-        LOG(WARNING) << "Not found any pose at timestamp " << m_last_timestamp << " Discarding mesh";
+        LOG(WARNING) << "Not found any pose at timestamp " << m_last_timestamp << " Discarding mesh" << "check Gui->Misc->m_exact_pose pose for possible fix";
         if(m_player->is_paused() &&  m_player_should_continue_after_step){ //need to lso continue from here because the core will not update and therefore the bag will remain stopped
             m_player_should_do_one_step=true; //so that when it starts the callback it puts the bag back into pause
             m_player->pause(); //starts the bag
@@ -617,6 +617,7 @@ void Core::read_pose_file(){
         pose.matrix().block<3,3>(0,0)=quat.toRotationMatrix();
         pose.matrix().block<3,1>(0,3)=position;
         m_timestamps_original_vec.push_back(timestamp);
+        m_worldROS_baselink_vec.push_back(pose);
         timestamp=(uint64_t)std::round(timestamp/100000.0); ////TODO this is a dirty hack to reduce the discretization of time because the timestamps don't exactly match
         m_worldROS_baselink_map[timestamp]=pose;
         m_scan_nr_map[timestamp]=scan_nr;
@@ -629,15 +630,23 @@ bool Core::get_pose_at_timestamp(Eigen::Affine3d& pose, uint64_t timestamp){
     //Brute force through all and choose the closest one
     int best_timestamp=-1;
     uint64_t closest_diff_time=9999999;
+    int idx_best_timestamp=-1;
     for (size_t i = 0; i < m_timestamps_original_vec.size(); i++) {
         uint64_t timestamp_rounded=timestamp/1000.0; //need to reduce a bit the precision becuase in the file it's not that big
-        uint64_t diff_time= timestamp_rounded - m_timestamps_original_vec[i];
+        uint64_t diff_time= std::abs(timestamp_rounded - m_timestamps_original_vec[i]);
         if(diff_time<closest_diff_time){
             closest_diff_time=diff_time;
             best_timestamp=m_timestamps_original_vec[i];
+            idx_best_timestamp=i;
         }
     }
-    std::cout << "best timestamp would be " << best_timestamp << '\n';
+    std::cout << "best timestamp would be " << best_timestamp << " with closest diff at " <<  closest_diff_time << '\n';
+    if(m_exact_pose){
+        if(closest_diff_time!=0){
+            return false;
+        }
+    }
+
 
 
 

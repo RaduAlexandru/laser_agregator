@@ -20,6 +20,7 @@
     <param name="cam_frame_right" value="cam_right" />
 
     <param name="pose_file" value="/media/alex/Data/Master/Thesis/data/courtyard_data/2018-01-26/graph_viewer_scan_poses_00.txt" />
+    <param name="exact_pose" value="true" />
 
     <remap from="/cam_img_0" to="/cam_left/image_raw/compressed" />
     <remap from="/cam_img_1" to="/cam_right/image_raw/compressed" />

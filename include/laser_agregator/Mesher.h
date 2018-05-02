@@ -31,6 +31,8 @@ class Mesher{
 public:
     Mesher();
     void compute_mesh(pcl::PointCloud<PointXYZIDR>::Ptr cloud);
+    void remove_unreferenced_verts(Mesh& mesh);
+    bool compute_non_manifold_edges(std::vector<bool>& is_face_non_manifold, std::vector<bool>& is_vertex_non_manifold, const Eigen::MatrixXi& F_in);
 
     Mesh get_mesh();
     bool is_modified(){return m_mesh_is_modified;};
@@ -84,8 +86,8 @@ private:
     void smooth_mesh(Mesh& mesh);
     void improve_mesh(Mesh& mesh);
     void remove_faces_with_low_confidence(Mesh& mesh);
-    bool print_non_manifold_edges(std::vector<bool>& is_face_non_manifold, std::vector<bool>& is_vertex_non_manifold, const Eigen::MatrixXi& F_in);
-    void remove_unreferenced_verts(Mesh& mesh);
+
+
 
     void create_naive_mesh(Mesh &mesh, const pcl::PointCloud<PointXYZIDR>::Ptr cloud);
     Eigen::MatrixXi create_edges(Mesh& mesh, row_type_b& is_vertex_an_edge_endpoint);

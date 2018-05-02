@@ -248,8 +248,12 @@ void Gui::update() {
                 free(path);
             }
         }
-        if (ImGui::Button("Fix orientation")){
+        if (ImGui::Button("Fix orientation(ros->gl)")){
             m_core->m_scene.apply_transform(m_core->m_tf_worldGL_worldROS);
+            m_core->m_visualization_should_change=true;
+        }
+        if (ImGui::Button("Fix orientation(gl->ros)")){
+            m_core->m_scene.apply_transform(m_core->m_tf_worldGL_worldROS.inverse());
             m_core->m_visualization_should_change=true;
         }
         if (ImGui::Button("Subsample points")){

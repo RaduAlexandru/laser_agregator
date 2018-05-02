@@ -358,13 +358,13 @@ void Mesher::remove_faces_with_low_confidence(Mesh& mesh){
 
 
 
-bool Mesher::print_non_manifold_edges(std::vector<bool>& is_face_non_manifold, std::vector<bool>& is_vertex_non_manifold,  const Eigen::MatrixXi& F_in){
+bool Mesher::compute_non_manifold_edges(std::vector<bool>& is_face_non_manifold, std::vector<bool>& is_vertex_non_manifold,  const Eigen::MatrixXi& F_in){
     // List of edges (i,j,f,c) where edge i<j is associated with corner i of face
     // f
 
-    is_face_non_manifold.resize(F_in.rows());
+    is_face_non_manifold.resize(F_in.rows(),false);
     int nr_vertices=F_in.maxCoeff()+1;
-    is_vertex_non_manifold.resize(nr_vertices);
+    is_vertex_non_manifold.resize(nr_vertices,false);
     std::vector<std::vector<int> > TTT;
     for(int f=0;f<F_in.rows();++f)
         for (int i=0;i<3;++i)
@@ -381,6 +381,7 @@ bool Mesher::print_non_manifold_edges(std::vector<bool>& is_face_non_manifold, s
     // Sort lexicographically
     std::sort(TTT.begin(),TTT.end());
 
+    bool is_edge_manifold=true;
     for(int i=2;i<(int)TTT.size();++i)
     {
         // Check any edges occur 3 times
@@ -407,10 +408,10 @@ bool Mesher::print_non_manifold_edges(std::vector<bool>& is_face_non_manifold, s
             is_vertex_non_manifold[r3[1]]=true;
 
 
-//            return false;
+            is_edge_manifold=false;
         }
     }
-    return true;
+    return is_edge_manifold;
 }
 
 

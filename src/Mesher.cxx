@@ -115,7 +115,7 @@ void Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
 
 
     remove_unreferenced_verts(mesh);
-    igl::per_vertex_normals(mesh.V, mesh.F, mesh.NV);
+    igl::per_vertex_normals(mesh.V, mesh.F, igl::PER_VERTEX_NORMALS_WEIGHTING_TYPE_ANGLE, mesh.NV);
 
     mesh.sanity_check();
 

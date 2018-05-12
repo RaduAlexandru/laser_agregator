@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
     // core->set_mesh(mesh);
 
 
-    while (true) {
+    while (ros::ok()) {
 
         // LOG_SCOPE(INFO,"main_loop");
         glfwPollEvents();

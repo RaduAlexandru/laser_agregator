@@ -125,6 +125,10 @@ void Gui::update() {
        if (ImGui::SliderFloat("m_edge_merge_thresh", &m_core->m_mesher->m_edge_merge_thresh, 0.0, 0.98)) {
            m_core->recompute_mesher();
        }
+       if (ImGui::SliderFloat("m_edge_grazing_angle_thresh_horizontal", &m_core->m_mesher->m_edge_grazing_angle_thresh_horizontal, 0.0, 1.0)) {
+           m_core->recompute_mesher();
+       }
+
        if(ImGui::Checkbox("m_do_random_edge_stopping", &m_core->m_mesher->m_do_random_edge_stopping)){
            m_core->recompute_mesher();
        }

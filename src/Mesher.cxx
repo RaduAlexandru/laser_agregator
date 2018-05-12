@@ -21,6 +21,15 @@
 #include <igl/is_edge_manifold.h>
 #include <igl/is_border_vertex.h>
 #include <igl/edge_flaps.h>
+#include <igl/ramer_douglas_peucker.h>
+#include "igl/LinSpaced.h"
+#include "igl/find.h"
+#include "igl/cumsum.h"
+#include "igl/histc.h"
+#include "igl/slice.h"
+#include "igl/project_to_line.h"
+#include "igl/EPS.h"
+#include "igl/slice_mask.h"
 
 //loguru
 #include <loguru.hpp>
@@ -35,13 +44,13 @@ Mesher::Mesher() :
         m_smoothing_stepsize(-0.80),
         m_smoothing_max_movement(0.06),
         m_normal_thresh(0.989),
-        m_edge_merge_thresh(0.85),
+        m_edge_merge_thresh(0.1),
         m_show_as_image(false),
         m_triangle_area(1000.0),
         m_triangle_angle(0.0),
         m_show_delaunay(true),
         m_min_length_horizontal_edge(0),
-        m_max_length_horizontal_edge(300),
+        m_max_length_horizontal_edge(20),
         m_triangle_silent(true),
         m_triangle_fast_arithmetic(true),
         m_triangle_robust_interpolation(true),
@@ -104,8 +113,10 @@ void Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
     smooth_mesh(mesh);
 
     row_type_b is_vertex_an_edge_endpoint;
-    mesh.E  = create_edges(mesh,is_vertex_an_edge_endpoint);
+    // mesh.E  = create_edges(mesh,is_vertex_an_edge_endpoint);
+    mesh.E  = create_edges_douglas_peucker(mesh,is_vertex_an_edge_endpoint);
 
+    // create_naive_mesh(mesh, cloud);
     delaunay(mesh, is_vertex_an_edge_endpoint);
 
 
@@ -122,6 +133,7 @@ void Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
     if(mesh.V.rows()!=mesh.D.rows()){
         LOG(WARNING) << "If the mesh has more vertices after delaunay it may mean that some of the red edges are overlapping. \n This most likely happened because the \"gap\" in the laser is not set properly. You may need to fiddle with the view direction and view width in the launch file. \n If you look at the mesh in the algorithm frame (before applying all your transformations after meshing) it the gap should be furthest away from the camera, along the negative Z axis. If not then you need to rotate the mesh by 90 degrees around the Y axis by using the m_tf_alg_vel from the Core (see function create_transformation_matrices)";
     }
+
 
     m_finished_mesh_idx = m_working_mesh_idx;
     m_working_mesh_idx = (m_working_mesh_idx + 1) % NUM_MESHES_BUFFER;
@@ -651,6 +663,247 @@ Eigen::MatrixXi Mesher::create_edges(Mesh& mesh, row_type_b& is_vertex_an_edge_e
     return edges;
 
 }
+
+Eigen::MatrixXi Mesher::create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_vertex_an_edge_endpoint){
+
+    TIME_SCOPE("create_edges_douglas_peucker");
+
+    is_vertex_an_edge_endpoint.resize(mesh.V.rows(),false);
+
+    std::vector<Eigen::Vector2i> E_vec_final;
+
+    struct Edge_douglas{
+        Eigen::Vector2i edge;
+        bool is_next_edge_valid=true;
+        bool is_previous_edge_valid=true;
+    };
+
+    for (int y_idx = 0; y_idx < mesh.height; y_idx++) {
+        Eigen::MatrixXd P(mesh.width,3); //a row of point from the scanline
+        for (int x_idx = 0; x_idx < mesh.width; x_idx++) {
+            unsigned int idx = x_idx + y_idx * mesh.width;
+            P.row(x_idx)=mesh.V.row(idx);
+        }
+
+        //simplify it
+        Eigen::MatrixXd new_points;
+        Eigen::VectorXi J;
+        igl::ramer_douglas_peucker(P, m_edge_merge_thresh, new_points, J );
+        //J point into P and has the points that are taken as edges
+
+        //make edges
+        std::vector<Eigen::Vector2i> E_vec;
+        for (size_t i = 0; i < J.rows()-1; i++) {
+            int idx_edge_start=J(i) + y_idx * mesh.width; // J(i) is just the x_idx so to get back to index into the cloud we add the y_idx * mesh.width
+            int idx_edge_end=J(i+1) + y_idx * mesh.width;
+            // if(!mesh.V.row( idx_edge_start ).isZero()){
+            //     is_vertex_an_edge_endpoint[idx_edge_start]=true;
+            // }
+            // if(!mesh.V.row( idx_edge_end ).isZero()){
+            //     is_vertex_an_edge_endpoint[ idx_edge_end ]=true;
+            // }
+            if(!mesh.V.row( idx_edge_start ).isZero() && !mesh.V.row( idx_edge_end ).isZero()){
+                Eigen::Vector2i edge;
+                edge << idx_edge_start, idx_edge_end;
+                E_vec.push_back(edge);
+                // is_vertex_an_edge_endpoint[J(i)]=true;
+                // is_vertex_an_edge_endpoint[J(i+1)]=true;
+            }
+        }
+        std::cout << "E_vec has size " << E_vec.size() << '\n';
+
+        //filter by grazing direction
+        std::vector<Edge_douglas> E_douglas_vec;
+        for (size_t i = 0; i < E_vec.size(); i++) {
+            Eigen::Vector3d dir = (mesh.V.row(E_vec[i](1)) - mesh.V.row(E_vec[i](0))).normalized();
+            Eigen::Vector3d view = (Eigen::Vector3d(mesh.V.row(E_vec[i](0))) - mesh.sensor_pose.translation()).normalized();  //the
+            double dot = dir.dot(view);
+            if (std::fabs(dot)<=m_edge_grazing_angle_thresh_horizontal){  //ideally the dot will be close to 0 so the view and edge and orthogonal
+                VLOG(4) << "not at grazing angle, perfectly good edge " << dot;
+                Edge_douglas edge_douglas;
+                edge_douglas.edge=E_vec[i];
+                E_douglas_vec.push_back(edge_douglas);
+            }
+        }
+        std::cout << "E_douglas_vec after filteirng for angle has size " << E_douglas_vec.size() << '\n';
+        //get if the next or previous one are valid
+        for (size_t i = 1; i < E_douglas_vec.size()-1; i++) {
+            Edge_douglas& prev=E_douglas_vec[i-1];
+            Edge_douglas& cur=E_douglas_vec[i];
+            Edge_douglas& next=E_douglas_vec[i+1];
+
+            int edge_steps=std::abs( E_douglas_vec[i].edge(1)-E_douglas_vec[i].edge(0) );
+            if(edge_steps>m_max_length_horizontal_edge){
+                //it it does too make steps no need to split it since it will be split automatically by the max edge length
+                cur.is_previous_edge_valid=false;
+                cur.is_next_edge_valid=false;
+                continue;
+            }
+
+            // //check if from the previous we continue onto the cur
+            // if(prev.edge(1)==cur.edge(0)){
+            //     prev.is_next_edge_valid=true;
+            //     cur.is_previous_edge_valid=true;
+            // }
+            //
+            // //check if from the cur we continue onto the next
+            // if(cur.edge(1)==next.edge(0)){
+            //     cur.is_next_edge_valid=true;
+            //     next.is_previous_edge_valid=true;
+            // }
+        }
+
+
+        //split the edges depending if they have a valid next or prev
+        std::vector<Eigen::Vector2i> E_vec_split;
+        for (size_t i = 0; i < E_douglas_vec.size(); i++) {
+            int edge_steps=std::abs( E_douglas_vec[i].edge(1)-E_douglas_vec[i].edge(0) );
+            if(edge_steps > 3){
+               //splitting ONLY when going into the next edge
+               if(E_douglas_vec[i].is_next_edge_valid && !E_douglas_vec[i].is_previous_edge_valid ){
+                   Eigen::Vector2i split_0;
+                   Eigen::Vector2i split_1;
+                   split_0 << E_douglas_vec[i].edge(0), E_douglas_vec[i].edge(1)-1;
+                   split_1 << E_douglas_vec[i].edge(1)-1, E_douglas_vec[i].edge(1);
+                   E_vec_split.push_back( split_0 );
+                   E_vec_split.push_back( split_1 );
+               }
+               //splitting when continuing only from the previous edge
+               if(E_douglas_vec[i].is_previous_edge_valid && !E_douglas_vec[i].is_next_edge_valid){
+                   Eigen::Vector2i split_0;
+                   Eigen::Vector2i split_1;
+                   split_0 << E_douglas_vec[i].edge(0), E_douglas_vec[i].edge(0)+1;
+                   split_1 << E_douglas_vec[i].edge(0)+1, E_douglas_vec[i].edge(1);
+                   E_vec_split.push_back( split_0 );
+                   E_vec_split.push_back( split_1 );
+               }
+               //splitting when both are valid
+               if(E_douglas_vec[i].is_previous_edge_valid && E_douglas_vec[i].is_next_edge_valid){
+                   Eigen::Vector2i split_0;
+                   Eigen::Vector2i split_1;
+                   Eigen::Vector2i split_2;
+                   split_0 << E_douglas_vec[i].edge(0), E_douglas_vec[i].edge(0)+1;
+                   split_1 << E_douglas_vec[i].edge(0)+1, E_douglas_vec[i].edge(1)-1;
+                   split_2 << E_douglas_vec[i].edge(1)-1, E_douglas_vec[i].edge(1);
+                   E_vec_split.push_back( split_0 );
+                   E_vec_split.push_back( split_1 );
+                   E_vec_split.push_back( split_2 );
+               }
+
+               //if no split can be done
+               if(!E_douglas_vec[i].is_next_edge_valid && !E_douglas_vec[i].is_previous_edge_valid ){
+                   Eigen::Vector2i split_0;
+                   split_0 << E_douglas_vec[i].edge(0), E_douglas_vec[i].edge(1);
+                   E_vec_split.push_back( split_0 );
+               }
+            }
+        }
+
+
+        //further split if the edges are still too big
+        std::vector<Eigen::Vector2i> E_vec_split_smaller;
+        for (size_t i = 0; i < E_vec_split.size(); i++) {
+            int edge_steps=std::abs( E_vec_split[i](1)-E_vec_split[i](0) );
+            if(edge_steps > m_max_length_horizontal_edge){
+                int nr_time_to_split=std::ceil(edge_steps/m_max_length_horizontal_edge);
+                int increment_of_each_sub_edge=m_max_length_horizontal_edge;
+                int start_idx=E_vec_split[i](0);
+                int end_idx=E_vec_split[i](1);
+                for (int s = 0; s < nr_time_to_split+1; s++) {
+                    Eigen::Vector2i sub_edge;
+                    sub_edge << start_idx +s*increment_of_each_sub_edge, std::min(start_idx +(s+1)*increment_of_each_sub_edge, end_idx);
+                    E_vec_split_smaller.push_back(sub_edge);
+                }
+            }else{
+                E_vec_split_smaller.push_back(E_vec_split[i]);
+            }
+        }
+
+
+        //add the ones from this laser ring to the final edges
+        for (size_t i = 0; i < E_vec_split_smaller.size(); i++) {
+            E_vec_final.push_back(E_vec_split_smaller[i]);
+        }
+
+
+        // //TODO debug--------------   /add the ones from this laser ring to the final edges
+        // for (size_t i = 0; i < E_douglas_vec.size(); i++) {
+        //     E_vec_final.push_back(E_douglas_vec[i].edge);
+        // }
+        //
+        // //TODO debug--------------   /add the ones from this laser ring to the final edges
+        // for (size_t i = 0; i < E_vec.size(); i++) {
+        //     E_vec_final.push_back(E_vec[i].edge);
+        // }
+
+    }
+
+
+    //TODO set the is_vertex_an_edge_endpoint
+    for (size_t i = 0; i < E_vec_final.size(); i++) {
+        is_vertex_an_edge_endpoint[E_vec_final[i](0)]=true;
+        is_vertex_an_edge_endpoint[E_vec_final[i](1)]=true;
+    }
+
+
+    // std::cout << "E_vec has size " << E_vec.size() << '\n';
+    // Eigen::MatrixXi E= vec2eigen(E_vec);
+    // std::cout << "E has rows " << E.rows() << '\n';
+
+
+    return vec2eigen(E_vec_final);
+}
+
+// void Mesher::ramer_douglas_peucker(const Eigen::MatrixXd P, double tol, Eigen::MatrixXd S, Eigen::VectorXi J){
+//     // number of vertices
+//     const int n = P.rows();
+//
+//     // Trivial base case
+//     if(n <= 1){
+//         J = Eigen::VectorXi::Zero(n);
+//         S = P;
+//         return;
+//     }
+//
+//     // number of dimensions
+//     const int m = P.cols();
+//     Eigen::Array<bool,Eigen::Dynamic,1> I = Eigen::Array<bool,Eigen::Dynamic,1>::Constant(n,1,true);
+//     const auto stol = tol*tol;
+//
+//     std::function<void(const int,const int)> simplify;
+//     simplify = [&I,&P,&stol,&simplify](const int ixs, const int ixe)->void{
+//         assert(ixe>ixs);
+//         double sdmax = 0;
+//         typename Eigen::Matrix<double,Eigen::Dynamic,1>::Index ixc = -1;
+//         if((ixe-ixs)>1){
+//             double sdes = (P.row(ixe)-P.row(ixs)).squaredNorm();
+//             Eigen::Matrix<double,Eigen::Dynamic,1> sD;
+//             const auto & Pblock = P.block(ixs+1,0,((ixe+1)-ixs)-2,P.cols());
+//             if(sdes<=igl::EPS<double>()){
+//                 sD = (Pblock.rowwise()-P.row(ixs)).rowwise().squaredNorm();
+//             }else{
+//                 Eigen::Matrix<double,Eigen::Dynamic,1> T;
+//                 igl::project_to_line(Pblock,P.row(ixs).eval(),P.row(ixe).eval(),T,sD);
+//             }
+//             sdmax = sD.maxCoeff(&ixc);
+//             // Index full P
+//             ixc = ixc+(ixs+1);
+//         }
+//
+//         if(sdmax <= stol){
+//             if(ixs != ixe-1){
+//                 I.block(ixs+1,0,((ixe+1)-ixs)-2,1).setConstant(false);
+//             }
+//         }else{
+//             simplify(ixs,ixc);
+//             simplify(ixc,ixe);
+//         }
+//     };
+//
+//     simplify(0,n-1);
+//     igl::slice_mask(P,I,1,S);
+//     igl::find(I,J);
+// }
 
 void Mesher::delaunay(Mesh& mesh, const row_type_b& is_vertex_an_edge_endpoint){
     LOG_SCOPE_F(INFO, "delaunay4");

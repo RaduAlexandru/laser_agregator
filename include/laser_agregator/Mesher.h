@@ -91,6 +91,8 @@ private:
 
     void create_naive_mesh(Mesh &mesh, const pcl::PointCloud<PointXYZIDR>::Ptr cloud);
     Eigen::MatrixXi create_edges(Mesh& mesh, row_type_b& is_vertex_an_edge_endpoint);
+    Eigen::MatrixXi create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_vertex_an_edge_endpoint);
+    void ramer_douglas_peucker(const Eigen::MatrixXd P, double tol, Eigen::MatrixXd S, Eigen::VectorXi J);
     void delaunay(Mesh& mesh, const row_type_b& is_vertex_an_edge_endpoint);
 
     std::atomic<bool> m_mesh_is_modified;

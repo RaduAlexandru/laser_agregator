@@ -865,23 +865,27 @@ void Core::decimate(Mesh& mesh, const int nr_target_faces, const float decimatio
 
     m_mesher->remove_unreferenced_verts(mesh);
 
-    //remove faces that are non manifold
-    std::vector<bool> is_face_non_manifold;
-    std::vector<bool> is_vertex_non_manifold;
-    Mesh mesh_connected_to_infinity;
-    igl::connect_boundary_to_infinity(mesh.V,mesh.F, mesh_connected_to_infinity.V, mesh_connected_to_infinity.F);
-    bool is_edge_manifold=m_mesher->compute_non_manifold_edges(is_face_non_manifold, is_vertex_non_manifold,  mesh_connected_to_infinity.F);
-    std::vector<bool> is_vertex_non_manifold_original_mesh(mesh.V.rows());
-    for (size_t i = 0; i < mesh.V.rows(); i++) {
-        is_vertex_non_manifold_original_mesh[i]=is_vertex_non_manifold[i];
+    //remove faces that are non manifold (need to iterate because it is not guaranteed that the resulting mesh is manifold)
+    bool is_edge_manifold=false;
+    while(!is_edge_manifold){
+        std::vector<bool> is_face_non_manifold;
+        std::vector<bool> is_vertex_non_manifold;
+        Mesh mesh_connected_to_infinity;
+        igl::connect_boundary_to_infinity(mesh.V,mesh.F, mesh_connected_to_infinity.V, mesh_connected_to_infinity.F);
+        is_edge_manifold=m_mesher->compute_non_manifold_edges(is_face_non_manifold, is_vertex_non_manifold,  mesh_connected_to_infinity.F);
+        std::vector<bool> is_vertex_non_manifold_original_mesh(mesh.V.rows());
+        for (size_t i = 0; i < mesh.V.rows(); i++) {
+            is_vertex_non_manifold_original_mesh[i]=is_vertex_non_manifold[i];
+        }
+        // is_vertex_non_manifold[is_vertex_non_manifold.size()-1]=false; //the last one is the infinity vertex and we don't care about that one
+        std::cout << "is_edge_manifold is " << is_edge_manifold << '\n';
+        // bool is_edge_manifold_igl=igl::is_edge_manifold(mesh.F);
+        std::vector<int> V_indir;
+        mesh.V=filter_return_indirection(V_indir,mesh.V, is_vertex_non_manifold_original_mesh, false);
+        std::cout << "V_indir has size" << V_indir.size() << '\n';
+        mesh.F=filter_apply_indirection(V_indir,mesh.F);
     }
-    // is_vertex_non_manifold[is_vertex_non_manifold.size()-1]=false; //the last one is the infinity vertex and we don't care about that one
-    // std::cout << "is_edge_manifold is " << is_edge_manifold << '\n';
-    // bool is_edge_manifold_igl=igl::is_edge_manifold(mesh.F);
-    std::vector<int> V_indir;
-    mesh.V=filter_return_indirection(V_indir,mesh.V, is_vertex_non_manifold_original_mesh, false);
-    std::cout << "V_indir has size" << V_indir.size() << '\n';
-    mesh.F=filter_apply_indirection(V_indir,mesh.F);
+
 
     //decimate it
     Eigen::VectorXi I;

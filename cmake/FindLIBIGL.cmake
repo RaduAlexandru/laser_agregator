@@ -6,20 +6,57 @@
 #  LIBIGL_INCLUDE_DIRS - LIBIGL include directories
 #  LIBIGL_SOURCES - the LIBIGL source files
 
-if(NOT LIBIGL_FOUND)
-	find_path(LIBIGL_INCLUDE_DIR
-		NAMES igl/readOBJ.h
-	   	PATHS ${PROJECT_SOURCE_DIR}/deps/libigl/include
-		DOC "The libigl include directory"
-		NO_DEFAULT_PATH)
+# if(NOT LIBIGL_FOUND)
+# 	find_path(LIBIGL_INCLUDE_DIR
+# 		NAMES igl/readOBJ.h
+# 	   	PATHS ${PROJECT_SOURCE_DIR}/deps/libigl/include
+# 		DOC "The libigl include directory"
+# 		NO_DEFAULT_PATH)
+#
+# 	if(LIBIGL_INCLUDE_DIR)
+# 	   set(LIBIGL_FOUND TRUE)
+# 	   set(LIBIGL_INCLUDE_DIRS ${LIBIGL_INCLUDE_DIR})
+# 	else()
+# 	   message("+-------------------------------------------------+")
+# 	   message("| libigl not found, please run download_libigl.sh |")
+# 	   message("+-------------------------------------------------+")
+# 	   message(FATAL_ERROR "")
+# 	endif()
+#
+# 	include(FindPackageHandleStandardArgs)
+# 	find_package_handle_standard_args(LIBIGL
+# 	    "\nlibigl not found --- You can download it using:\n\tgit clone --recursive https://github.com/libigl/libigl.git ${CMAKE_SOURCE_DIR}/../libigl"
+# 	    LIBIGL_INCLUDE_DIR)
+# 	mark_as_advanced(LIBIGL_INCLUDE_DIR)
+#
+# 	list(APPEND CMAKE_MODULE_PATH "${LIBIGL_INCLUDE_DIR}/../shared/cmake")
+# 	include(libigl)
+#
+#
+# endif()
 
-	if(LIBIGL_INCLUDE_DIR)
-	   set(LIBIGL_FOUND TRUE)
-	   set(LIBIGL_INCLUDE_DIRS ${LIBIGL_INCLUDE_DIR})
-	else()
-	   message("+-------------------------------------------------+")
-	   message("| libigl not found, please run download_libigl.sh |")
-	   message("+-------------------------------------------------+")
-	   message(FATAL_ERROR "")
-	endif()
+
+
+if(LIBIGL_FOUND)
+    return()
 endif()
+
+find_path(LIBIGL_INCLUDE_DIR igl/readOBJ.h
+    HINTS
+        ENV LIBIGL
+        ENV LIBIGLROOT
+        ENV LIBIGL_ROOT
+        ENV LIBIGL_DIR
+    PATHS
+        ${PROJECT_SOURCE_DIR}/deps/libigl/include
+    PATH_SUFFIXES include
+)
+
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(LIBIGL
+    "\nlibigl not found --- You can download it using:\n\tgit clone --recursive https://github.com/libigl/libigl.git ${CMAKE_SOURCE_DIR}/../libigl"
+    LIBIGL_INCLUDE_DIR)
+mark_as_advanced(LIBIGL_INCLUDE_DIR)
+
+list(APPEND CMAKE_MODULE_PATH "${LIBIGL_INCLUDE_DIR}/../shared/cmake")
+include(libigl)

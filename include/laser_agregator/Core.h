@@ -28,7 +28,7 @@ class Mesher;
 class Agregator;
 class Profiler;
 class RosBagPlayer;
-namespace igl {  namespace viewer { class Viewer; }}
+namespace igl {  namespace opengl {namespace glfw{ class Viewer; }}}
 
 
 #define TIME_SCOPE(name)\
@@ -40,7 +40,7 @@ namespace igl {  namespace viewer { class Viewer; }}
 
 class Core{
 public:
-    Core(std::shared_ptr<igl::viewer::Viewer> view, std::shared_ptr<Profiler> profiler);
+    Core(std::shared_ptr<igl::opengl::glfw::Viewer> view, std::shared_ptr<Profiler> profiler);
     void update();
     void init_params();
     void read_data();
@@ -57,7 +57,7 @@ public:
 
 
     //objects dependencies
-    std::shared_ptr<igl::viewer::Viewer> m_view;
+    std::shared_ptr<igl::opengl::glfw::Viewer> m_view;
     std::shared_ptr<Profiler> m_profiler;
     std::shared_ptr<Mesher> m_mesher;
     std::shared_ptr<Agregator> m_agregator;

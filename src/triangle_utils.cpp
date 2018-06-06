@@ -331,14 +331,14 @@ int count_flips(const Eigen::MatrixXd &V,
   return flip_idx.size();
 }
 
-void write_viewer_to_png(igl::viewer::Viewer &viewer, std::string file_path, int magnification) {
+void write_viewer_to_png(igl::opengl::glfw::Viewer &viewer, std::string file_path, int magnification) {
     int width  = std::round(viewer.core.viewport(2));
     int height = std::round(viewer.core.viewport(3));
   Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic>
       R(width*magnification , height*magnification );
   auto G = R, B = R, A = R;
 
-  viewer.core.draw_buffer(viewer.data, viewer.opengl, false, R, G, B, A);
+  viewer.core.draw_buffer(viewer.data(), false, R, G, B, A);
   igl::png::writePNG(R, G, B, A, file_path);
 }
 
@@ -631,31 +631,31 @@ void triangle_improving_edge_flip(const Eigen::MatrixXd &V,
 
 
 
-#include <igl/triangle_tuple.h>
-#include <igl/readOBJ.h>
-void smooth_single_vertex(const int &f0,
-                          const int &e0,
-                          const bool &a0,
-                          const Eigen::MatrixXi &F,
-                          const Eigen::MatrixXi &FF,
-                          const Eigen::MatrixXi &FFi,
-                          Eigen::MatrixXd &V) {
-  Eigen::RowVectorXd avg_V(V.cols());
-  int f = f0;
-  int e = e0;
-  bool a = a0;
-  int n_neighbor = 0;
-  int v0 = igl::triangle_tuple_get_vert(f, e, a, F, FF, FFi);
-  do {
-    igl::triangle_tuple_next_in_one_ring(f, e, a, F, FF, FFi);
-    int v_op = igl::triangle_tuple_get_vert(f, e, !a, F, FF, FFi);
-    avg_V += V.row(v_op);
-    n_neighbor++;
-  } while (f != f0);
-
-  avg_V /= n_neighbor;
-  V.row(v0) = avg_V;
-}
+// #include <igl/triangle_tuple.h>
+// #include <igl/readOBJ.h>
+// void smooth_single_vertex(const int &f0,
+//                           const int &e0,
+//                           const bool &a0,
+//                           const Eigen::MatrixXi &F,
+//                           const Eigen::MatrixXi &FF,
+//                           const Eigen::MatrixXi &FFi,
+//                           Eigen::MatrixXd &V) {
+//   Eigen::RowVectorXd avg_V(V.cols());
+//   int f = f0;
+//   int e = e0;
+//   bool a = a0;
+//   int n_neighbor = 0;
+//   int v0 = igl::triangle_tuple_get_vert(f, e, a, F, FF, FFi);
+//   do {
+//     igl::triangle_tuple_next_in_one_ring(f, e, a, F, FF, FFi);
+//     int v_op = igl::triangle_tuple_get_vert(f, e, !a, F, FF, FFi);
+//     avg_V += V.row(v_op);
+//     n_neighbor++;
+//   } while (f != f0);
+//
+//   avg_V /= n_neighbor;
+//   V.row(v0) = avg_V;
+// }
 
 #include "igl/grad.h"
 template<typename DerivedV, typename DerivedF>

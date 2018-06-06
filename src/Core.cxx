@@ -11,7 +11,7 @@
 #include "laser_agregator/triangle_utils.h"
 
 //libigl
-#include <igl/viewer/Viewer.h>
+#include <igl/opengl/glfw/Viewer.h>
 #include <igl/readOBJ.h>
 #include <igl/readPLY.h>
 #include <igl/writePLY.h>
@@ -44,7 +44,7 @@
 
 
 //GL //for the Movies package to swap buffers
-#include <GL/glad.h>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 //decimate
@@ -57,7 +57,7 @@ namespace fs = boost::filesystem;
 
 
 
-Core::Core(std::shared_ptr<igl::viewer::Viewer> view, std::shared_ptr<Profiler> profiler) :
+Core::Core(std::shared_ptr<igl::opengl::glfw::Viewer> view, std::shared_ptr<Profiler> profiler) :
         m_viewer_initialized(false),
         m_show_points(false),
         m_show_mesh(true),
@@ -127,7 +127,7 @@ void Core::update() {
         }
 
 
-        m_view->data.clear();
+        m_view->data().clear();
 
         if (m_show_mesh) {
             set_mesh(m_scene);  // the scene is internally broken down into various independent meshes
@@ -427,11 +427,11 @@ void Core::set_mesh(Mesh &mesh) {
     }
 
 
-   m_view->data.set_mesh(mesh.V, mesh.F);
+   m_view->data().set_mesh(mesh.V, mesh.F);
    if (mesh.C.rows() == mesh.V.rows() || mesh.C.rows() == mesh.F.rows()) {
-       m_view->data.set_colors(mesh.C);
+       m_view->data().set_colors(mesh.C);
    }else{
-       m_view->data.set_colors(color_points(mesh));
+       m_view->data().set_colors(color_points(mesh));
    }
 
 
@@ -448,9 +448,9 @@ void Core::set_points(Mesh &mesh) {
 
     // if there are none, then make some colors based on height
    if (mesh.C.rows() != mesh.V.rows()) {
-       m_view->data.set_points(mesh.V, color_points(mesh));
+       m_view->data().set_points(mesh.V, color_points(mesh));
    } else {
-       m_view->data.set_points(mesh.V, mesh.C);
+       m_view->data().set_points(mesh.V, mesh.C);
    }
 
 
@@ -473,7 +473,7 @@ void Core::set_edges(Mesh &mesh) {
         C(i, 2) = 0.0;
     }
 
-   m_view->data.set_edges(mesh.V, mesh.E, C);
+   m_view->data().set_edges(mesh.V, mesh.E, C);
 
 
    if (!m_viewer_initialized) {

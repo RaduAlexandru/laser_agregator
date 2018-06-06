@@ -11,7 +11,7 @@
 //forward declarations
 class Core;
 class Profiler;
-namespace igl {  namespace viewer { class Viewer; }}
+namespace igl {  namespace opengl {namespace glfw{ class Viewer; }}}
 
 //Since the source directory is not known we get it from the cmake variable {CMAKE_SOURCE_DIR} through target_compile_definitions
 #ifdef AWESOMEFONT_DIR
@@ -28,7 +28,7 @@ namespace igl {  namespace viewer { class Viewer; }}
 class Gui{
 public:
     Gui(std::shared_ptr<Core> core,
-        std::shared_ptr<igl::viewer::Viewer> view,
+        std::shared_ptr<igl::opengl::glfw::Viewer> view,
         std::shared_ptr<Profiler> profiler);
     void update();
 
@@ -45,7 +45,7 @@ private:
 
     // ImGuiIO& io= ImGui::GetIO();
     std::shared_ptr<Core> m_core;
-    std::shared_ptr<igl::viewer::Viewer> m_view;
+    std::shared_ptr<igl::opengl::glfw::Viewer> m_view;
     std::shared_ptr<Profiler> m_profiler;
 
     bool m_show_demo_window;

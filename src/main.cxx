@@ -4,13 +4,13 @@
 //#include <thread>
 
 //GL
-#include <GL/glad.h>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 // //libigl
 //set this to supress libigl viewer help
 //#define IGL_VIEWER_VIEWER_QUIET
-#include <igl/viewer/Viewer.h>
+#include <igl/opengl/glfw/Viewer.h>
 
 
 //ImGui
@@ -30,7 +30,7 @@
 #include "laser_agregator/Profiler.h"
 
 void switch_callbacks(
-        std::shared_ptr<igl::viewer::Viewer> view); //Need to switch the callbacks so that the input goes to either libigl or imgui
+        std::shared_ptr<igl::opengl::glfw::Viewer> view); //Need to switch the callbacks so that the input goes to either libigl or imgui
 
 int main(int argc, char *argv[]) {
 
@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     LOG_S(INFO) << "Hello from main!";
 
     //Objects
-    std::shared_ptr<igl::viewer::Viewer> view(new igl::viewer::Viewer());
+    std::shared_ptr<igl::opengl::glfw::Viewer> view(new igl::opengl::glfw::Viewer());
     view->launch_init();  //creates the actual opengl window so that imgui can attach to it
     std::shared_ptr<Profiler> profiler(new Profiler());
     std::shared_ptr<Core> core(new Core(view,profiler));
@@ -53,9 +53,7 @@ int main(int argc, char *argv[]) {
 
     //Eyecandy options
     view->core.background_color << 0.2, 0.2, 0.2, 1.0;
-    view->core.show_lines = false;
-    view->core.point_size = 2;
-    view->ngui->window()->setVisible(false);
+    view->data().show_lines = false; //start with the mesh not showing wirefrae
     // viewer.core.line_color << 1.0, 0.2, 0.2, 1.0;
 
 
@@ -84,6 +82,7 @@ int main(int argc, char *argv[]) {
 
 
         ImGui::Render();
+        ImGui_ImplGlfwGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(view->window);
 
     }
@@ -100,13 +99,13 @@ int main(int argc, char *argv[]) {
 }
 
 
-void switch_callbacks(std::shared_ptr<igl::viewer::Viewer> view) {
+void switch_callbacks(std::shared_ptr<igl::opengl::glfw::Viewer> view) {
     bool hovered_imgui = ImGui::IsMouseHoveringAnyWindow();
     if (hovered_imgui) {
-        glfwSetMouseButtonCallback(view->window, ImGui_ImplGlfwGL3_MouseButtonCallback);
-        glfwSetScrollCallback(view->window, ImGui_ImplGlfwGL3_ScrollCallback);
-        glfwSetKeyCallback(view->window, ImGui_ImplGlfwGL3_KeyCallback);
-        glfwSetCharCallback(view->window, ImGui_ImplGlfwGL3_CharCallback);
+        glfwSetMouseButtonCallback(view->window, ImGui_ImplGlfw_MouseButtonCallback);
+        glfwSetScrollCallback(view->window, ImGui_ImplGlfw_ScrollCallback);
+        glfwSetKeyCallback(view->window, ImGui_ImplGlfw_KeyCallback);
+        glfwSetCharCallback(view->window, ImGui_ImplGlfw_CharCallback);
         glfwSetCharModsCallback(view->window, nullptr);
     } else {
         glfwSetMouseButtonCallback(view->window, glfw_mouse_press);

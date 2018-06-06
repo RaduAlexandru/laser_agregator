@@ -21,13 +21,13 @@
 //#include <loguru.hpp>
 
 //libigl
-#include <igl/viewer/Viewer.h>
+#include <igl/opengl/glfw/Viewer.h>
 
 //nativefiledialog
 #include <nfd.h>
 
 Gui::Gui(std::shared_ptr<Core> core,
-         std::shared_ptr<igl::viewer::Viewer> view,
+         std::shared_ptr<igl::opengl::glfw::Viewer> view,
          std::shared_ptr<Profiler> profiler) :
         m_show_demo_window(false),
         m_show_profiler_window(true),
@@ -36,6 +36,7 @@ Gui::Gui(std::shared_ptr<Core> core,
     m_view = view;
     m_profiler=profiler;
 
+    ImGui::CreateContext();
     ImGui_ImplGlfwGL3_Init(m_view->window, true);
 
     init_style();
@@ -59,7 +60,7 @@ void Gui::update() {
 
     if (ImGui::CollapsingHeader("Viewer")) {
         if (ImGui::Button("CenterCamera")) {
-            m_view->core.align_camera_center(m_view->data.V);
+            m_view->core.align_camera_center(m_view->data().V);
         }
         //TODO not the best way of doing it because changing it supposes recomputing the whole mesh again
         if (ImGui::Checkbox("Show points", &m_core->m_show_points)) {
@@ -79,23 +80,27 @@ void Gui::update() {
         }
 
        //Imgui view.core options
-       ImGui::Checkbox("Show texture", &m_view->core.show_texture);
-       ImGui::Checkbox("Show faces", &m_view->core.show_faces);
-       ImGui::Checkbox("Show lines", &m_view->core.show_lines);
-       ImGui::Checkbox("Show vertid", &m_view->core.show_vertid);
-       ImGui::Checkbox("Show pointid", &m_view->core.show_pointid);
-       ImGui::Checkbox("Show faceid", &m_view->core.show_faceid);
-       ImGui::Checkbox("Invert_normals", &m_view->core.invert_normals);
+       ImGui::Checkbox("Show texture", &m_view->data().show_texture);
+       ImGui::Checkbox("Show faces", &m_view->data().show_faces);
+       ImGui::Checkbox("Show lines", &m_view->data().show_lines);
+       ImGui::Checkbox("Show vertid", &m_view->data().show_vertid);
+       // ImGui::Checkbox("Show pointid", &m_view->data().show_pointid);
+       ImGui::Checkbox("Show faceid", &m_view->data().show_faceid);
+       ImGui::Checkbox("Invert_normals", &m_view->data().invert_normals);
+       ImGui::SliderFloat("shininess", &m_view->data().shininess, 0.001f, 2.0f);
 
-       ImGui::SliderFloat("shininess", &m_view->core.shininess, 0.001f, 2.0f);
+
+       //global params applied to all meshes
        ImGui::SliderFloat("lighting_factor", &m_view->core.lighting_factor, 0.0f, 2.0f);
-       ImGui::SliderFloat("point_size", &m_view->core.point_size, 1.0, 7.0);
-       ImGui::SliderFloat("line_width", &m_view->core.line_width, 0.1, 10.0);
-       if(ImGui::SliderFloat("m_cap_max_y", &m_core->m_cap_max_y, 0.1f, 50.0f)){
-           m_core->m_visualization_should_change=true;
-       }
+       ImGui::SliderFloat("shading_factor", &m_view->core.shading_factor, 0.0f, 1.0f);
        if(ImGui::ColorEdit3("Bg color", (float*)&m_bg_color)){
            m_view->core.background_color << m_bg_color.x , m_bg_color.y, m_bg_color.z;
+       }
+
+       ImGui::SliderFloat("point_size", &m_view->data().point_size, 1.0, 7.0);
+       ImGui::SliderFloat("Line_width", &m_view->data().line_width, 0.6f, 5.0f);
+       if(ImGui::SliderFloat("m_cap_max_y", &m_core->m_cap_max_y, 0.1f, 50.0f)){
+           m_core->m_visualization_should_change=true;
        }
        if(ImGui::ColorEdit3("Mesh color", (float*)&m_mesh_color)){
            m_core->m_mesh_color << m_mesh_color.x , m_mesh_color.y, m_mesh_color.z;
@@ -378,7 +383,7 @@ void Gui::update() {
     // 3. Show the ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
     if (m_show_demo_window) {
         ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-        ImGui::ShowTestWindow(&m_show_demo_window);
+        ImGui::ShowDemoWindow(&m_show_demo_window);
     }
 
 
@@ -405,7 +410,7 @@ void Gui::init_style() {
     style->Colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.05f, 0.07f, 0.85f);
     style->Colors[ImGuiCol_ChildWindowBg] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
     style->Colors[ImGuiCol_PopupBg] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
-    style->Colors[ImGuiCol_Border] = ImVec4(0.80f, 0.80f, 0.83f, 0.88f);
+    style->Colors[ImGuiCol_Border] = ImVec4(0.80f, 0.80f, 0.83f, 0.0f);
     style->Colors[ImGuiCol_BorderShadow] = ImVec4(0.92f, 0.91f, 0.88f, 0.00f);
     style->Colors[ImGuiCol_FrameBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
     style->Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
@@ -418,7 +423,7 @@ void Gui::init_style() {
     style->Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.80f, 0.80f, 0.83f, 0.31f);
     style->Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
     style->Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
-    style->Colors[ImGuiCol_ComboBg] = ImVec4(0.19f, 0.18f, 0.21f, 1.00f);
+    // style->Colors[ImGuiCol_ComboBg] = ImVec4(0.19f, 0.18f, 0.21f, 1.00f);
     style->Colors[ImGuiCol_CheckMark] = ImVec4(0.80f, 0.80f, 0.83f, 0.31f);
     style->Colors[ImGuiCol_SliderGrab] = ImVec4(0.80f, 0.80f, 0.83f, 0.31f);
     style->Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);

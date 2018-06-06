@@ -8,7 +8,7 @@
   </node>
 
 
-    <arg name="path" default="/media/alex/Data/Master/Thesis/data/courtyard_data/janis_data/" />
+    <arg name="path" default="/media/alex/Data/Master/Thesis/data/courtyard_data/lbh_small/" />
     <arg name="file_1" default="2017-08-24-17-10-10" />
     <arg name="start_time" default="15" />
   <node pkg="laser_agregator" type="laser_agregator" name="laser_agregator" output="screen">

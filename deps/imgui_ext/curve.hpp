@@ -495,7 +495,8 @@ namespace ImGui
         if (!ItemAdd(bb, NULL))
             return 0;
 
-        const bool hovered = IsHovered(bb, id);
+        // const bool hovered = IsHovered(bb, id); //TODO this doesn't work anymore in the new imgui version
+        const bool hovered = ItemHoverable(bb, id);
 
         int max = 0;
         while (max < maxpoints && points[max].x >= 0) max++;

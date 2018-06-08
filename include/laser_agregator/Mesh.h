@@ -31,6 +31,7 @@ public:
     void to_3D();   //from a matrix with 2 columns creates one with 3 columns (requiered to go from the delaunay triangulation into a 3d mesh representable in libigl)
     void to_2D();  //from a matrix V with 3 columns, it discards te last one and creates one with 2 columns (in order for an image to be passed to the triangle library)
     void sanity_check() const; //check that all the data inside the mesh is valid, there are enough normals for each face, faces don't idx invalid points etc.
+    void fix_oversplit_due_to_blender_uv();
 
 
     friend std::ostream &operator<<(std::ostream&, const Mesh& m);
@@ -69,6 +70,7 @@ public:
     Eigen::MatrixXd D;   //distances of points to the sensor
     Eigen::MatrixXd N_faces; //normals of each face
     Eigen::MatrixXd NV; //normals of each face
+    Eigen::MatrixXd UV; //normals of each face
     uint64_t t; //timestamp;
 
 

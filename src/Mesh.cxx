@@ -7,6 +7,9 @@
 //my stuff
 #include "laser_agregator/MiscUtils.h"
 
+//libigl
+#include <igl/remove_duplicates.h>
+
 
 Mesh::Mesh():
         sensor_pose(Eigen::Affine3d::Identity()),
@@ -34,6 +37,8 @@ void Mesh::add(const Mesh& new_mesh) {
         N_faces_new << N_faces, new_mesh.N_faces;
         Eigen::MatrixXd NV_new(NV.rows() + new_mesh.NV.rows(), 3);
         NV_new << NV, new_mesh.NV;
+        Eigen::MatrixXd UV_new(UV.rows() + new_mesh.UV.rows(), 2);
+        UV_new << UV, new_mesh.UV;
 
 
         V = V_new;
@@ -43,6 +48,7 @@ void Mesh::add(const Mesh& new_mesh) {
         D = D_new;
         N_faces=N_faces_new;
         NV=NV_new;
+        UV=UV_new;
     }
 
 
@@ -58,6 +64,7 @@ void Mesh::clear() {
     D.resize(0,0);
     N_faces.resize(0,0);
     NV.resize(0,0);
+    UV.resize(0,0);
 }
 
 
@@ -225,6 +232,7 @@ std::ostream& operator<<(std::ostream& os, const Mesh& m)
 
     m.V.size()?  os << "\t V has size: " << m.V.rows() << " x " << m.V.cols() << "\n"   :   os << "\t V is empty \n";
     m.F.size()?  os << "\t F has size: " << m.F.rows() << " x " << m.F.cols() << "\n"   :   os << "\t F is empty \n";
+    m.UV.size()?  os << "\t UV has size: " << m.UV.rows() << " x " << m.UV.cols() << "\n"   :   os << "\t UV is empty \n";
     m.D.size()?  os << "\t D has size: " << m.D.rows() << " x " << m.D.cols() << "\n"   :   os << "\t D is empty \n";
     m.C.size()?  os << "\t C has size: " << m.C.rows() << " x " << m.C.cols() << "\n"   :   os << "\t C is empty \n";
     m.E.size()?  os << "\t E has size: " << m.E.rows() << " x " << m.E.cols() << "\n"   :   os << "\t E is empty \n";
@@ -238,4 +246,26 @@ std::ostream& operator<<(std::ostream& os, const Mesh& m)
 
 
     return os;
+}
+
+void Mesh::fix_oversplit_due_to_blender_uv(){
+
+    //Blender exports a ply in which every triangles has independant vertices, we need to merge them but we cannot merge if vertices have a split in UV space
+    //merge if they are both spacially close and close in uv space
+    //build a 5D vertices which contain xyz,uv and let igl::remove_duplicates do the job
+    Eigen::MatrixXd V_UV(V.rows(),5);
+
+
+    V_UV.block(0,0,V.rows(),3)=V;
+    V_UV.block(0,3,V.rows(),2)=UV;
+
+    Eigen::MatrixXd V_UV_merged;
+    Eigen::MatrixXi F_merged;
+    Eigen::VectorXi I; //size of V_original and it maps to where each vertex ended up in the merged vertices
+    igl::remove_duplicates(V_UV, F ,V_UV_merged,F_merged,I,1e-14);
+
+    V=V_UV_merged.block(0,0,V_UV_merged.rows(),3);
+    UV=V_UV_merged.block(0,3,V_UV_merged.rows(),2);
+    F=F_merged;
+
 }

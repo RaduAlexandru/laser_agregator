@@ -1,14 +1,14 @@
 <launch>
     <arg name="laser_view_direction" default="3.07" />
   <node pkg="velodyne_pointcloud" type="cloud_node" name="cloud_node" output="screen">
-    <param name="calibration" value="/media/alex/Data/Master/SHK/c_ws/src/velodyne/velodyne_pointcloud/params/VLP16db.yaml" />
+    <param name="calibration" value="/home/local/rosu/c_ws/src/velodyne_drivers/velodyne_pointcloud/params/VLP16db.yaml" />
     <param name="organize_cloud" value="true"/>
     <param name="view_direction" value="$(arg laser_view_direction)"/>
     <param name="view_width" value="6.031"/>
   </node>
 
 
-    <arg name="path" default="/media/alex/Data/Master/Thesis/data/courtyard_data/lbh_small/" />
+    <arg name="path" default="/home/local/rosu/data/courtyard_data/lbh_small/" />
     <arg name="file_1" default="2017-08-24-17-10-10" />
     <arg name="start_time" default="15" />
   <node pkg="laser_agregator" type="laser_agregator" name="laser_agregator" output="screen">
@@ -17,7 +17,7 @@
     <param name="cam_frame_left" value="cam_left" />
     <param name="cam_frame_right" value="cam_right" />
 
-    <param name="pose_file" value="/media/alex/Data/Master/SHK/c_ws/src/laser_mesher/data/graph_viewer_scan_poses_00.txt" />
+    <param name="pose_file" value="/home/local/rosu/data/courtyard_data/lbh_small/poses/graph_viewer_scan_poses_00.txt" />
     <param name="exact_pose" value="false" />
 
     <remap from="/cam_img_0" to="/cam_left/image_raw/compressed" />

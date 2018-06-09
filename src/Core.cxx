@@ -274,7 +274,7 @@ void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
     m_mesher->compute_mesh(cloud);
     local_mesh=m_mesher->get_mesh();
 
-
+    // std::cout << "after computing local mesh we have tranform to alg " << local_mesh.m_tf_currframe_alg.matrix() << '\n';
     local_mesh.apply_transform(m_tf_alg_vel.inverse());  //now we have it in vel frame
     local_mesh.apply_transform(m_tf_baselink_vel);   //from velodyne to baselink
     local_mesh.apply_transform(sensor_pose);   //from baselik to world ros
@@ -920,7 +920,8 @@ void Core::remove_point_in_the_gap(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
 //         }
 //     }
 
-
+    // float min=999999;
+    // float max=-9999999;
     for (size_t i = 0; i < cloud->size(); i++) {
         PointXYZIDR point=cloud->points[i];
 
@@ -931,11 +932,13 @@ void Core::remove_point_in_the_gap(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
 
             double theta, phi;
             phi = std::atan2(vertex.x(), - vertex.z()); // atan goes from -pi to pi
-            theta = (std::asin(vertex.y() / r));
+            // theta = (std::asin(vertex.y() / r));
 
             //if phi (the angle in the horizontal direction) is is within a certain range of 0 then set the points to nan
-            float gap_angle=0.3;
-            if(phi< -(M_PI+gap_angle) || phi > M_PI-gap_angle ){
+            float gap_angle=0.1415;
+            //TODO why is this not correct?
+            // if(phi< (-M_PI+gap_angle) || phi > (M_PI-gap_angle) ){
+            if(phi< gap_angle && phi > -gap_angle ){
                 cloud->points[i].x=nan("");
                 cloud->points[i].y=nan("");
                 cloud->points[i].z=nan("");
@@ -944,8 +947,19 @@ void Core::remove_point_in_the_gap(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
             }
 
 
+            // if(phi<min){
+            //     min=phi;
+            // }
+            // if(phi>max){
+            //     max=phi;
+            // }
+
+
         }
 
     }
+
+
+    // std::cout << "min max is " << min << " " << max << '\n';
 
 }

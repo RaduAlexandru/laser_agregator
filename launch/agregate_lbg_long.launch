@@ -1,0 +1,22 @@
+<launch>
+
+    <!-- <rosparam name="use_sim_time" value="true"/> -->
+    <arg name="laser_view_direction" default="3.07" />
+  <node pkg="velodyne_pointcloud" type="cloud_node" name="cloud_node" output="screen">
+    <param name="calibration" value="/home/local/rosu/c_ws/src/velodyne_drivers/velodyne_pointcloud/params/VLP16db.yaml" />
+    <param name="organize_cloud" value="true"/>
+  </node>
+
+
+
+
+    <arg name="path" default="/home/local/rosu/data/courtyard_data/lbh_long/" />
+    <arg name="file_1" default="velodyne_2017-07-04-13-34-38" />
+    <arg name="start_time" default="0" />
+  <node pkg="rosbag" type="play" name="player_color" output="screen" args="--clock -r 1.0 --start=$(arg start_time) $(arg path)$(arg file_1).bag">
+    <remap from="/velodyne_points" to="/original_points" />
+    <!-- remaping the original unorganized point cloud to something else-->
+  </node>
+
+
+</launch>

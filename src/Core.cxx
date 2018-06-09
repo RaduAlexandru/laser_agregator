@@ -260,6 +260,7 @@ void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
 
     //mesh it
     fix_cloud_orientation(cloud);
+    remove_point_in_the_gap(cloud); //this cloud is now in aglgorithm frame so the gap is on the far size of the camera, along the negative z axis
     m_last_cloud=cloud;
     //Mesh the point cloud
     Mesh local_mesh;
@@ -267,6 +268,7 @@ void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
     // m_mesher->create_simple_mesh2(local_mesh,cloud);
     // igl::per_face_normals(local_mesh.V, local_mesh.F, local_mesh.N_faces);
     // m_mesher->remove_faces_with_low_confidence(local_mesh);
+
 
     //create one with subsampled points
     m_mesher->compute_mesh(cloud);
@@ -894,5 +896,56 @@ void Core::decimate(Mesh& mesh, const int nr_target_faces, const float decimatio
 
     std::cout << "fixing oversplitting due to blender uvs" << '\n';
     mesh.fix_oversplit_due_to_blender_uv();
+
+}
+
+//NEEDS TO BE CALLED WHEN THE CLOUD IS IN ALGORITHM FRAME
+void Core::remove_point_in_the_gap(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
+
+    // pcl::transformPointCloud (*cloud, *cloud, m_tf_alg_vel);
+
+//     for (int i = 0; i < V.rows(); ++i) {
+//         if (!V_alg_frame.row(i).isZero()) {
+//             double r, theta, phi;
+//             r = V_alg_frame.row(i).norm();
+//             phi = std::atan2(V_alg_frame(i,0), -V_alg_frame(i,2));
+//             if (phi < 0.0) {     //atan goes from -pi to pi, it's easier to think of it going from 0 to 2pi
+//                 phi += 2 * M_PI;
+//             }
+//             theta = (std::asin(V_alg_frame(i, 1) / r));
+// //            V.row(i) << phi, theta, r;
+//             V.row(i) << phi, theta, 0.0; // change back to r and not 0.0
+//             D(i)=r;  //store it back in D so that we can access it to_mesh (some points may not have D in the case when we fuse another mesh in it)
+//
+//         }
+//     }
+
+
+    for (size_t i = 0; i < cloud->size(); i++) {
+        PointXYZIDR point=cloud->points[i];
+
+        if (!std::isnan(point.x) && !std::isnan(point.y) && !std::isnan(point.z)) {
+            Eigen::Vector3d vertex;
+            vertex << point.x, point.y, point.z;
+            double r=point.distance;
+
+            double theta, phi;
+            phi = std::atan2(vertex.x(), - vertex.z()); // atan goes from -pi to pi
+            theta = (std::asin(vertex.y() / r));
+
+            //if phi (the angle in the horizontal direction) is is within a certain range of 0 then set the points to nan
+            float gap_angle=0.3;
+            if(phi< -(M_PI+gap_angle) || phi > M_PI-gap_angle ){
+                cloud->points[i].x=nan("");
+                cloud->points[i].y=nan("");
+                cloud->points[i].z=nan("");
+                cloud->points[i].intensity = 0;
+                cloud->points[i].distance=nan("");
+            }
+
+
+        }
+
+    }
 
 }

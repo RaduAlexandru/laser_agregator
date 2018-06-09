@@ -54,6 +54,7 @@ public:
     void write_obj();
     void recompute_mesher();
     void fix_cloud_orientation(pcl::PointCloud<PointXYZIDR>::Ptr cloud);
+    void remove_point_in_the_gap(pcl::PointCloud<PointXYZIDR>::Ptr cloud); //NEEDS TO BE CALLED WHEN THE CLOUD IS IN ALGORITHM FRAME
 
 
     //objects dependencies

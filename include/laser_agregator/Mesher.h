@@ -30,7 +30,8 @@ class Edge;
 class Mesher{
 public:
     Mesher();
-    void compute_mesh(pcl::PointCloud<PointXYZIDR>::Ptr cloud);
+    void compute_mesh(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    void just_points(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     void remove_unreferenced_verts(Mesh& mesh);
     bool compute_non_manifold_edges(std::vector<bool>& is_face_non_manifold, std::vector<bool>& is_vertex_non_manifold, const Eigen::MatrixXi& F_in);
 
@@ -74,22 +75,22 @@ public:
     std::vector<Mesh> m_meshes; //need to use a buffer of meshes because the Mesher needs to keep in memory both the calculated mesh and the one its currently working on
     int m_finished_mesh_idx; //idx pointing to the most recent finished mesh
     int m_working_mesh_idx; //idx poiting to the mesh we are currently working on
-    pcl::PointCloud<PointXYZIDR>::Ptr last_cloud;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr last_cloud;
 
     std::shared_ptr<Profiler> m_profiler;
 
 private:
     void init_params();
-    void simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud);
-    void naive_mesh(pcl::PointCloud<PointXYZIDR>::Ptr cloud);
-    Eigen::MatrixXd pcl2eigen(pcl::PointCloud<PointXYZIDR>::Ptr cloud);
+    void simplify(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    void naive_mesh(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    Eigen::MatrixXd pcl2eigen(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     void smooth_mesh(Mesh& mesh);
     void improve_mesh(Mesh& mesh);
     void remove_faces_with_low_confidence(Mesh& mesh);
 
 
 
-    void create_naive_mesh(Mesh &mesh, const pcl::PointCloud<PointXYZIDR>::Ptr cloud);
+    void create_naive_mesh(Mesh &mesh, const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     Eigen::MatrixXi create_edges(Mesh& mesh, row_type_b& is_vertex_an_edge_endpoint);
     Eigen::MatrixXi create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_vertex_an_edge_endpoint);
     void ramer_douglas_peucker(const Eigen::MatrixXd P, double tol, Eigen::MatrixXd S, Eigen::VectorXi J);

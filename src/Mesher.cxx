@@ -82,7 +82,7 @@ void Mesher::init_params(){
 }
 
 
-void Mesher::compute_mesh(pcl::PointCloud<PointXYZIDR>::Ptr cloud){
+void Mesher::compute_mesh(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
     if(m_compute_naive_mesh){
         naive_mesh(cloud);
     }else{
@@ -91,7 +91,7 @@ void Mesher::compute_mesh(pcl::PointCloud<PointXYZIDR>::Ptr cloud){
 }
 
 
-void Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
+void Mesher::simplify(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 
     LOG_SCOPE(INFO, "create_mesh");
     TIME_SCOPE("create_mesh");
@@ -141,7 +141,7 @@ void Mesher::simplify(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
 
 }
 
-void Mesher::naive_mesh(pcl::PointCloud<PointXYZIDR>::Ptr cloud){
+void Mesher::naive_mesh(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
     last_cloud = cloud;
     Mesh &mesh = m_meshes[m_working_mesh_idx];
     mesh.clear();
@@ -167,6 +167,25 @@ void Mesher::naive_mesh(pcl::PointCloud<PointXYZIDR>::Ptr cloud){
     m_mesh_is_modified = true;
 }
 
+void Mesher::just_points(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
+
+    last_cloud = cloud;
+    Mesh &mesh = m_meshes[m_working_mesh_idx];
+    mesh.clear();
+
+    mesh.width = cloud->width;  //intended to make the mesh have size 16x1800
+    mesh.height = cloud->height;
+    mesh.V = pcl2eigen(cloud).leftCols(3);
+    mesh.D = pcl2eigen(cloud).rightCols(1);
+
+
+    mesh.sanity_check();
+    m_finished_mesh_idx = m_working_mesh_idx;
+    m_working_mesh_idx = (m_working_mesh_idx + 1) % NUM_MESHES_BUFFER;
+    m_mesh_is_modified = true;
+
+}
+
 void Mesher::remove_unreferenced_verts(Mesh& mesh){
     //remove unreferenced vertices to get rid also of the ones at 0,0,0
     row_type_b is_vertex_referenced(mesh.V.rows(),false);
@@ -186,7 +205,7 @@ void Mesher::remove_unreferenced_verts(Mesh& mesh){
 
 
 /*Grabs a point cloud and lays down the points in a row by row manner starting from the top-left. */
-Eigen::MatrixXd Mesher::pcl2eigen(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
+Eigen::MatrixXd Mesher::pcl2eigen(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 
     int num_points = cloud->width*cloud->height;
 
@@ -204,10 +223,19 @@ Eigen::MatrixXd Mesher::pcl2eigen(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
             if (!std::isnan(cloud->points[idx].x) && !std::isnan(cloud->points[idx].y) && !std::isnan(cloud->points[idx].z)) {
                 //insert the point with a different structure so that we have the points not in a cloud of 1800x16 and starting from the upper right but rather of size 16x1800 and starting from bottom left
                 // std::cout << "insertin row at " << insertion_idx  << '\n';
-                V_d.row(insertion_idx) << cloud->points[idx].x,
-                        cloud->points[idx].y,
-                        cloud->points[idx].z,
-                        cloud->points[idx].distance;
+
+                Eigen::Vector3d pos;
+                pos << cloud->points[idx].x, cloud->points[idx].y, cloud->points[idx].z;
+                float dist=pos.norm(); //can do this because we have it velodyne frame and the 0,0,0 is in the center
+                V_d.row(insertion_idx)(0)=pos(0);
+                V_d.row(insertion_idx)(1)=pos(1);
+                V_d.row(insertion_idx)(2)=pos(2);
+                V_d.row(insertion_idx)(3)=dist;
+
+                 // << cloud->points[idx].x,
+                 //        cloud->points[idx].y,
+                 //        cloud->points[idx].z,
+                 //        0.0; //TODO set to 0 because not we don't have distance
             } else {
                 //TODO better handling of invalid points
                 // std::cout << "insertin 0s at row " << insertion_idx  << '\n';
@@ -428,7 +456,7 @@ bool Mesher::compute_non_manifold_edges(std::vector<bool>& is_face_non_manifold,
 
 
 
-void Mesher::create_naive_mesh(Mesh &mesh, const pcl::PointCloud<PointXYZIDR>::Ptr cloud ) {
+void Mesher::create_naive_mesh(Mesh &mesh, const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud ) {
 
     LOG_SCOPE(INFO, "create_naive_mesh");
     TIME_SCOPE("create_naive_mesh");

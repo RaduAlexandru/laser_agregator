@@ -242,8 +242,13 @@ void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
     //get the laser data into a point cloud
     pcl::PCLPointCloud2::Ptr temp_cloud(new pcl::PCLPointCloud2());
     pcl_conversions::toPCL(*cloud_msg, *temp_cloud);
-    pcl::PointCloud<PointXYZIDR>::Ptr cloud(new pcl::PointCloud<PointXYZIDR>);
+    std::cout << "row step is " << temp_cloud->row_step << '\n';
+    // temp_cloud->row_step=57600;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromPCLPointCloud2(*temp_cloud, *cloud);
+    //force it to be organized
+    cloud->height=16;
+    cloud->width=1800;
 
 
 
@@ -261,6 +266,9 @@ void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
     //mesh it
     fix_cloud_orientation(cloud);
     remove_point_in_the_gap(cloud); //this cloud is now in aglgorithm frame so the gap is on the far size of the camera, along the negative z axis
+
+    //force organization in case the cloud is not actually organized
+
     m_last_cloud=cloud;
     //Mesh the point cloud
     Mesh local_mesh;
@@ -272,7 +280,9 @@ void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
 
     //create one with subsampled points
     m_mesher->compute_mesh(cloud);
+    // m_mesher->just_points(cloud);
     local_mesh=m_mesher->get_mesh();
+    std::cout << "Mesh V has size " << local_mesh.V.rows() << '\n';
 
     // std::cout << "after computing local mesh we have tranform to alg " << local_mesh.m_tf_currframe_alg.matrix() << '\n';
     local_mesh.apply_transform(m_tf_alg_vel.inverse());  //now we have it in vel frame
@@ -342,7 +352,7 @@ void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
 
 }
 
-void Core::fix_cloud_orientation(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
+void Core::fix_cloud_orientation(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 
     pcl::transformPointCloud (*cloud, *cloud, m_tf_alg_vel);
 
@@ -900,7 +910,7 @@ void Core::decimate(Mesh& mesh, const int nr_target_faces, const float decimatio
 }
 
 //NEEDS TO BE CALLED WHEN THE CLOUD IS IN ALGORITHM FRAME
-void Core::remove_point_in_the_gap(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
+void Core::remove_point_in_the_gap(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 
     // pcl::transformPointCloud (*cloud, *cloud, m_tf_alg_vel);
 
@@ -923,12 +933,12 @@ void Core::remove_point_in_the_gap(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
     // float min=999999;
     // float max=-9999999;
     for (size_t i = 0; i < cloud->size(); i++) {
-        PointXYZIDR point=cloud->points[i];
+        pcl::PointXYZ point=cloud->points[i];
 
         if (!std::isnan(point.x) && !std::isnan(point.y) && !std::isnan(point.z)) {
             Eigen::Vector3d vertex;
             vertex << point.x, point.y, point.z;
-            double r=point.distance;
+            double r=vertex.norm();
 
             double theta, phi;
             phi = std::atan2(vertex.x(), - vertex.z()); // atan goes from -pi to pi
@@ -942,8 +952,8 @@ void Core::remove_point_in_the_gap(pcl::PointCloud<PointXYZIDR>::Ptr cloud) {
                 cloud->points[i].x=nan("");
                 cloud->points[i].y=nan("");
                 cloud->points[i].z=nan("");
-                cloud->points[i].intensity = 0;
-                cloud->points[i].distance=nan("");
+                // cloud->points[i].intensity = 0;
+                // cloud->points[i].distance=nan("");
             }
 
 

@@ -53,8 +53,8 @@ public:
     void write_ply();
     void write_obj();
     void recompute_mesher();
-    void fix_cloud_orientation(pcl::PointCloud<PointXYZIDR>::Ptr cloud);
-    void remove_point_in_the_gap(pcl::PointCloud<PointXYZIDR>::Ptr cloud); //NEEDS TO BE CALLED WHEN THE CLOUD IS IN ALGORITHM FRAME
+    void fix_cloud_orientation(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
+    void remove_point_in_the_gap(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud); //NEEDS TO BE CALLED WHEN THE CLOUD IS IN ALGORITHM FRAME
 
 
     //objects dependencies
@@ -66,7 +66,7 @@ public:
 
     //Misc
     Scene m_scene;
-    pcl::PointCloud<PointXYZIDR>::Ptr m_last_cloud;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr m_last_cloud;
     char m_exported_filename[64] = "./scene";
     uint64_t m_last_timestamp;
     int m_nr_callbacks;

@@ -738,7 +738,7 @@ Eigen::MatrixXi Mesher::create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_
                 // is_vertex_an_edge_endpoint[J(i+1)]=true;
             }
         }
-        std::cout << "E_vec has size " << E_vec.size() << '\n';
+        // std::cout << "E_vec has size " << E_vec.size() << '\n';
 
         //filter by grazing direction
         std::vector<Edge_douglas> E_douglas_vec;
@@ -753,7 +753,7 @@ Eigen::MatrixXi Mesher::create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_
                 E_douglas_vec.push_back(edge_douglas);
             }
         }
-        std::cout << "E_douglas_vec after filteirng for angle has size " << E_douglas_vec.size() << '\n';
+        // std::cout << "E_douglas_vec after filteirng for angle has size " << E_douglas_vec.size() << '\n';
         //get if the next or previous one are valid
         for (size_t i = 1; i < E_douglas_vec.size()-1; i++) {
             Edge_douglas& prev=E_douglas_vec[i-1];

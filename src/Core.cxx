@@ -242,7 +242,7 @@ void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
     //get the laser data into a point cloud
     pcl::PCLPointCloud2::Ptr temp_cloud(new pcl::PCLPointCloud2());
     pcl_conversions::toPCL(*cloud_msg, *temp_cloud);
-    std::cout << "row step is " << temp_cloud->row_step << '\n';
+    // std::cout << "row step is " << temp_cloud->row_step << '\n';
     // temp_cloud->row_step=57600;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::fromPCLPointCloud2(*temp_cloud, *cloud);
@@ -282,7 +282,7 @@ void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
     m_mesher->compute_mesh(cloud);
     // m_mesher->just_points(cloud);
     local_mesh=m_mesher->get_mesh();
-    std::cout << "Mesh V has size " << local_mesh.V.rows() << '\n';
+    // std::cout << "Mesh V has size " << local_mesh.V.rows() << '\n';
 
     // std::cout << "after computing local mesh we have tranform to alg " << local_mesh.m_tf_currframe_alg.matrix() << '\n';
     local_mesh.apply_transform(m_tf_alg_vel.inverse());  //now we have it in vel frame
@@ -653,7 +653,7 @@ bool Core::get_pose_at_timestamp(Eigen::Affine3d& pose, uint64_t timestamp){
             idx_best_timestamp=i;
         }
     }
-    std::cout << "best timestamp would be " << best_timestamp << " with closest diff at " <<  closest_diff_time << '\n';
+    VLOG(2) << "best timestamp would be " << best_timestamp << " with closest diff at " <<  closest_diff_time;
     if(m_exact_pose){
         if(closest_diff_time!=0){
             return false;

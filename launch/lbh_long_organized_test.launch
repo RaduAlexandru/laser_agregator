@@ -1,0 +1,54 @@
+<launch>
+    <arg name="laser_view_direction" default="3.07" />
+
+
+
+    <arg name="path" default="/home/local/rosu/data/courtyard_data/lbh_long_test/" />
+    <arg name="file_1" default="organized_test" />
+    <arg name="start_time" default="10" />
+  <node pkg="laser_agregator" type="laser_agregator" name="laser_agregator" output="screen"
+
+       >
+    <param name="nr_cams" value="1" />
+    <param name="world_frame" value="world" />
+    <param name="cam_frame_left" value="cam_left" />
+    <param name="cam_frame_right" value="cam_right" />
+
+    <param name="pose_file" value="/home/local/rosu/data/courtyard_data/lbh_long_test/poses.txt" />
+    <param name="exact_pose" value="false" />
+
+    <remap from="/cam_img_0" to="/cam_left/image_raw/compressed" />
+    <remap from="/cam_img_1" to="/cam_right/image_raw/compressed" />
+    <remap from="/cam_info_0" to="box_detection_node/cam_info" />
+    <remap from="/cam_info_1" to="team/0/cam_info_2" />
+    <remap from="/laser" to="/velodyne_points" />
+
+    <param name="view_direction" value="$(arg laser_view_direction)"/>
+
+    <!-- Output verbosity params -->
+    <param name="loguru_verbosity" value="3" />                             <!-- The higher the number the more verbose, at -1 it only output warning, errors and fatals -->
+
+     <!-- Triangle params -->
+    <param name="triangle_silent" value="true" />                           <!-- Silence the output of Triangle -->
+    <param name="triangle_fast_arithmetic" value="true" />                  <!-- Supress precise arithmetic in Triangle, if set to true gain a bit of performance but can be error-prone -->
+    <param name="triangle_robust_interpolation" value="true" />             <!-- Usage of precise interpolation in Triangle, slightly slower but needed for sparse points like laser data-->
+    <param name="triangle_min_area" value="1000" />                         <!-- Minimum area of the triangles in the triangulation -->
+    <param name="triangle_min_angle" value="10" />                          <!-- Minimum angle of the triangles in the triangulation. DO NOT SET TO ABOVE 27 degrees -->
+    <param name="triangle_max_steiner" value="40000" />                     <!-- Maximum number of Steiner points added to the triangulation in order to ensure the a certain min angle and min area -->
+
+    <!-- Visualizer params -->
+    <param name="show_points" value="false" />
+    <param name="show_mesh" value="true" />
+    <param name="show_edges" value="false" />
+    <param name="show_edges" value="false" />
+
+    <!-- Fuser params -->
+    <param name="do_fusion" value="false" />
+
+
+
+    <param name="bag_args" value="--clock -q -r 1.0 --pause --start=$(arg start_time) $(arg path)$(arg file_1).bag" />
+  </node>
+
+
+</launch>

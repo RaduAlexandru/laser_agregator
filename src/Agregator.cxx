@@ -31,7 +31,8 @@ Agregator::Agregator():
         m_nr_points_agregated(0),
         m_nr_prealocated_points(30000000),
         m_do_agregation(true),
-        m_is_enabled(true){
+        m_is_enabled(true),
+        m_nr_points_dropped(0){
 
     init_params();
 
@@ -68,7 +69,8 @@ void Agregator::agregate(const Mesh& local_mesh){
     if(m_do_agregation){
         int nr_new_vertices=local_mesh.V.rows();
         if(  (m_nr_points_agregated+nr_new_vertices) > V_agregated.rows()){
-            LOG(WARNING) << "Not agregating since the buffer is already full";
+            m_nr_points_dropped+=nr_new_vertices;
+            LOG(ERROR) << "Not agregating since the buffer is already full. Dropping " << m_nr_points_dropped << "points";
         }else{
             V_agregated.block(m_nr_points_agregated,0, nr_new_vertices, 3)=local_mesh.V;
             NV_agregated.block(m_nr_points_agregated,0, nr_new_vertices, 3)=local_mesh.NV;

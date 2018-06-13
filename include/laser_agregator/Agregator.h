@@ -66,6 +66,7 @@ public:
     int m_working_scene_idx; //idx poiting to the scene we are currently working on
     std::atomic<bool> m_scene_is_modified;
     int m_nr_points_agregated;
+    int m_nr_points_dropped; //increases when we drop points because it doesn't fit
 
     std::shared_ptr<Profiler> m_profiler;
 

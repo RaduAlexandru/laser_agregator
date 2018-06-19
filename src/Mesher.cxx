@@ -50,7 +50,7 @@ Mesher::Mesher() :
         m_triangle_angle(0.0),
         m_show_delaunay(true),
         m_min_length_horizontal_edge(0),
-        m_max_length_horizontal_edge(20),
+        m_max_length_horizontal_edge(300),
         m_triangle_silent(true),
         m_triangle_fast_arithmetic(true),
         m_triangle_robust_interpolation(true),
@@ -113,8 +113,8 @@ void Mesher::simplify(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     smooth_mesh(mesh);
 
     row_type_b is_vertex_an_edge_endpoint;
-    // mesh.E  = create_edges(mesh,is_vertex_an_edge_endpoint);
-    mesh.E  = create_edges_douglas_peucker(mesh,is_vertex_an_edge_endpoint);
+    mesh.E  = create_edges(mesh,is_vertex_an_edge_endpoint);
+    // mesh.E  = create_edges_douglas_peucker(mesh,is_vertex_an_edge_endpoint);
 
     // create_naive_mesh(mesh, cloud);
     delaunay(mesh, is_vertex_an_edge_endpoint);
@@ -719,6 +719,9 @@ Eigen::MatrixXi Mesher::create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_
         igl::ramer_douglas_peucker(P, m_edge_merge_thresh, new_points, J );
         //J point into P and has the points that are taken as edges
 
+        // std::cout << "P has size " << P.rows() << '\n';
+        // std::cout << "new points has size " << new_points.rows() << '\n';
+
         //make edges
         std::vector<Eigen::Vector2i> E_vec;
         for (size_t i = 0; i < J.rows()-1; i++) {
@@ -739,6 +742,9 @@ Eigen::MatrixXi Mesher::create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_
             }
         }
         // std::cout << "E_vec has size " << E_vec.size() << '\n';
+        if(E_vec.size()==0){
+            continue;
+        }
 
         //filter by grazing direction
         std::vector<Edge_douglas> E_douglas_vec;

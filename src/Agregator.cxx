@@ -29,7 +29,7 @@ Agregator::Agregator():
         m_finished_scene_idx(-1),
         m_working_scene_idx(0),
         m_nr_points_agregated(0),
-        m_nr_prealocated_points(30000000),
+        m_nr_prealocated_points(33000000),
         m_do_agregation(true),
         m_is_enabled(true),
         m_nr_points_dropped(0){

@@ -904,8 +904,8 @@ void Core::decimate(Mesh& mesh, const int nr_target_faces, const float decimatio
     Eigen::VectorXi J;
     igl::qslim(mesh.V, mesh.F, nr_target_faces,  mesh.V, mesh.F, J,I);
 
-    std::cout << "fixing oversplitting due to blender uvs" << '\n';
-    mesh.fix_oversplit_due_to_blender_uv();
+    //std::cout << "fixing oversplitting due to blender uvs" << '\n';
+    //mesh.fix_oversplit_due_to_blender_uv();
 
 }
 

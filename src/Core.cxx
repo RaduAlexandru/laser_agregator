@@ -161,7 +161,8 @@ void Core::init_params() {
     m_view_direction = getParamElseThrow<float>(private_nh, "view_direction");
     m_bag_args = getParamElseThrow<std::string>(private_nh, "bag_args");
 
-    m_exact_pose=getParamElseDefault<bool>(private_nh, "exact_pose", false);
+    m_exact_pose=getParamElseThrow<bool>(private_nh, "exact_pose");
+    m_randomize_laser_view_dir=getParamElseThrow<bool>(private_nh, "randomize_laser_view_dir");
 
 
     //verbosity
@@ -217,6 +218,12 @@ void Core::callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg) {
     m_last_timestamp=(uint64_t)cloud_msg->header.stamp.toNSec();
 
     LOG_S(INFO) << "calback----------------------" << m_last_timestamp;
+
+    //we randomize the direction so we don't end up with blind spots in front of the laser
+    if(m_randomize_laser_view_dir){
+        m_view_direction=rand_float(0,2*M_PI);
+        create_transformation_matrices();//recreate transformation matrices
+    }
 
 
 
@@ -631,7 +638,7 @@ void Core::read_pose_file(){
         pose.matrix().block<3,1>(0,3)=position;
         m_timestamps_original_vec.push_back(timestamp);
         m_worldROS_baselink_vec.push_back(pose);
-        timestamp=(uint64_t)std::round(timestamp/100000.0); ////TODO this is a dirty hack to reduce the discretization of time because the timestamps don't exactly match
+        // timestamp=(uint64_t)std::round(timestamp/100000.0); ////TODO this is a dirty hack to reduce the discretization of time because the timestamps don't exactly match
         m_worldROS_baselink_map[timestamp]=pose;
         m_scan_nr_map[timestamp]=scan_nr;
     }
@@ -640,39 +647,86 @@ void Core::read_pose_file(){
 
 bool Core::get_pose_at_timestamp(Eigen::Affine3d& pose, uint64_t timestamp){
 
-    //Brute force through all and choose the closest one
-    int best_timestamp=-1;
-    uint64_t closest_diff_time=9999999;
-    int idx_best_timestamp=-1;
+    std::cout << "query with timestamp " << timestamp << '\n';
+
+    // //Brute force through all and choose the closest one
+    // uint64_t best_timestamp=-1;
+    // double closest_diff_time=9999999;
+    // int idx_best_timestamp=-1;
+    // for (size_t i = 0; i < m_timestamps_original_vec.size(); i++) {
+    //     uint64_t timestamp_rounded=timestamp/1000.0; //need to reduce a bit the precision becuase in the file it's not that big
+    //     uint64_t diff_time= std::abs(timestamp_rounded - m_timestamps_original_vec[i]);
+    //     if(diff_time<closest_diff_time){
+    //         closest_diff_time=diff_time;
+    //         best_timestamp=m_timestamps_original_vec[i];
+    //         idx_best_timestamp=i;
+    //     }
+    // }
+    // VLOG(2) << "best timestamp would be " << best_timestamp << " with closest diff at " <<  closest_diff_time;
+    // if(m_exact_pose){
+    //     if(closest_diff_time!=0){
+    //         return false;
+    //     }
+    // }
+    //
+    // pose= m_worldROS_baselink_vec[idx_best_timestamp];
+    // return true;
+
+
+
+
+
+
+
+
+    //second attempt at brute forcing
+    uint64_t closest_idx=-1;
+    double smallest_timestamp_diff=std::numeric_limits<double>::max();
+    double smallest_timestamp_diff_no_abs=std::numeric_limits<double>::max();
+    uint64_t best_timestamp=-1;
+    double timestamp_rounded=timestamp/1000.0; //timestampt is in nanosecond by we want it in microseconds
     for (size_t i = 0; i < m_timestamps_original_vec.size(); i++) {
-        uint64_t timestamp_rounded=timestamp/1000.0; //need to reduce a bit the precision becuase in the file it's not that big
-        uint64_t diff_time= std::abs(timestamp_rounded - m_timestamps_original_vec[i]);
-        if(diff_time<closest_diff_time){
-            closest_diff_time=diff_time;
-            best_timestamp=m_timestamps_original_vec[i];
-            idx_best_timestamp=i;
+        double recorded_timestamp=m_timestamps_original_vec[i];
+        // std::cout << "comparing recorded_timestamp to timestmp \n" << recorded_timestamp << "\n" << timestamp << '\n';
+        if (  abs((double)timestamp_rounded- (double)recorded_timestamp) < smallest_timestamp_diff){
+            closest_idx=i;
+            best_timestamp=recorded_timestamp;
+            smallest_timestamp_diff=abs(timestamp_rounded-recorded_timestamp);
+            smallest_timestamp_diff_no_abs=(double)timestamp_rounded - (double)recorded_timestamp;
         }
     }
-    VLOG(2) << "best timestamp would be " << best_timestamp << " with closest diff at " <<  closest_diff_time;
+     VLOG(2) << "best timestamp would be " << best_timestamp << " with closest diff at " <<  smallest_timestamp_diff;
+    // if ( smallest_timestamp_diff > 1e6 )
+    // {
+    //     LOG(WARNING) << "time difference for pose is way too large! " << (smallest_timestamp_diff/1e6) << "s." << '\n';
+    //     return false;
+    // }
     if(m_exact_pose){
-        if(closest_diff_time!=0){
+        if(smallest_timestamp_diff!=0){
             return false;
         }
     }
+    // std::cout << "smallest_timestamp_diff is " << smallest_timestamp_diff << '\n';
+    // std::cout << "smallest_timestamp_diff_no_abs is " << smallest_timestamp_diff_no_abs << '\n';
+    // std::cout << "deviation_ms is " << deviation_ms << '\n';
+    pose=m_worldROS_baselink_vec[closest_idx];
+    return true;
 
 
 
 
-    uint64_t timestamp_rounded=(uint64_t)std::round(timestamp/100000000.0);
-    auto pose_pair = m_worldROS_baselink_map.find (timestamp_rounded);
-    if ( pose_pair == m_worldROS_baselink_map.end() ){
-        LOG(WARNING) << "get_pose: pose query for the scan does not exist at timestamp" << timestamp;
-        return false;
-    }else{
-        pose = pose_pair->second;
-//        VLOG(2) << "returning pose at scan_nr  \n" << pose.matrix();
-        return true;
-    }
+
+
+//     uint64_t timestamp_rounded=(uint64_t)std::round(timestamp/100000000.0);
+//     auto pose_pair = m_worldROS_baselink_map.find (timestamp_rounded);
+//     if ( pose_pair == m_worldROS_baselink_map.end() ){
+//         LOG(WARNING) << "get_pose: pose query for the scan does not exist at timestamp" << timestamp;
+//         return false;
+//     }else{
+//         pose = pose_pair->second;
+// //        VLOG(2) << "returning pose at scan_nr  \n" << pose.matrix();
+//         return true;
+//     }
 
 }
 

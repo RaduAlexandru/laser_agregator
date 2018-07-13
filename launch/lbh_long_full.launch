@@ -14,8 +14,9 @@
     <param name="cam_frame_left" value="cam_left" />
     <param name="cam_frame_right" value="cam_right" />
 
-    <param name="pose_file" value="/home/local/rosu/data/courtyard_data/lbh_long_organized/courtyard_26.txt" />
-    <param name="exact_pose" value="false" />
+    <param name="pose_file" value="/home/local/rosu/data/courtyard_data/lbh_long/poses/courtyard_20180714.txt" />
+    <param name="exact_pose" value="true" />
+    <param name="randomize_laser_view_dir" value="true" />
 
     <remap from="/cam_img_0" to="/cam_left/image_raw/compressed" />
     <remap from="/cam_img_1" to="/cam_right/image_raw/compressed" />

@@ -85,6 +85,7 @@ public:
     std::shared_ptr<RosBagPlayer> m_player;
     tf::TransformListener m_tf_listener;
     float m_view_direction;
+    bool m_randomize_laser_view_dir; //we randomize the direction so we don't end up with blind spots in front of the laser 
 
 
     bool m_viewer_initialized;

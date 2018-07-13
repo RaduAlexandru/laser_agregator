@@ -44,26 +44,26 @@ Mesher::Mesher() :
         m_smoothing_stepsize(-0.80),
         m_smoothing_max_movement(0.06),
         m_normal_thresh(0.989),
-        m_edge_merge_thresh(0.1),
+        m_edge_merge_thresh(0.085),
         m_show_as_image(false),
         m_triangle_area(1000.0),
         m_triangle_angle(0.0),
         m_show_delaunay(true),
         m_min_length_horizontal_edge(0),
-        m_max_length_horizontal_edge(300),
+        m_max_length_horizontal_edge(25),
         m_triangle_silent(true),
         m_triangle_fast_arithmetic(true),
         m_triangle_robust_interpolation(true),
-        m_edge_grazing_angle_thresh_horizontal(0.95),
+        m_edge_grazing_angle_thresh_horizontal(0.9),
         m_edge_grazing_angle_thresh_vertical(0.9),
-        m_min_grazing(0.075),
+        m_min_grazing(0.1),
         m_max_tri_length(6.5),
         m_min_tri_quality(0.015),
         m_create_faces(true),
         m_improve_mesh(true),
-        m_adaptive_edge_length(true),
+        m_adaptive_edge_length(false),
         m_do_random_edge_stopping(true),
-        m_random_edge_stopping_thresh(0.9),
+        m_random_edge_stopping_thresh(0.0),
         m_compute_naive_mesh(false){
 
     init_params();
@@ -113,8 +113,8 @@ void Mesher::simplify(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
     smooth_mesh(mesh);
 
     row_type_b is_vertex_an_edge_endpoint;
-    mesh.E  = create_edges(mesh,is_vertex_an_edge_endpoint);
-    // mesh.E  = create_edges_douglas_peucker(mesh,is_vertex_an_edge_endpoint);
+    // mesh.E  = create_edges(mesh,is_vertex_an_edge_endpoint);
+    mesh.E  = create_edges_douglas_peucker(mesh,is_vertex_an_edge_endpoint);
 
     // create_naive_mesh(mesh, cloud);
     delaunay(mesh, is_vertex_an_edge_endpoint);
@@ -873,10 +873,51 @@ Eigen::MatrixXi Mesher::create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_
     }
 
 
-    //TODO set the is_vertex_an_edge_endpoint
+    //randomly split the edges of E_vec_final to improve the constraints for poisson
+    std::vector<Eigen::Vector2i> E_vec_final_randomly_split;
     for (size_t i = 0; i < E_vec_final.size(); i++) {
-        is_vertex_an_edge_endpoint[E_vec_final[i](0)]=true;
-        is_vertex_an_edge_endpoint[E_vec_final[i](1)]=true;
+        //check if we split this edge or not
+
+        //at each step we check if the edge should stop here randomly
+        if(m_do_random_edge_stopping){
+            float val=rand_float(0.0 ,1.0);
+            if(val>m_random_edge_stopping_thresh){
+                //we check if the edge is long enough to be split
+                int start_idx=E_vec_final[i](0);
+                int end_idx=E_vec_final[i](1);
+                if( std::abs(start_idx-end_idx)<2 ){
+                    //edge is too small
+                    E_vec_final_randomly_split.push_back(E_vec_final[i]);
+                    // continue;
+                }else{
+                    int middle_idx=rand_int(start_idx+1,end_idx-1);
+                    // int middle_idx=start_idx+std::abs(start_idx-end_idx)/2;
+                    Eigen::Vector2i left_edge;
+                    Eigen::Vector2i right_edge;
+                    left_edge<< start_idx,middle_idx;
+                    right_edge<< middle_idx, end_idx;
+
+                    //push the two randomly split edges
+                    E_vec_final_randomly_split.push_back(left_edge);
+                    E_vec_final_randomly_split.push_back(right_edge);
+                }
+            }else{
+                //it was not chosen for splitting so we just add the original one
+                E_vec_final_randomly_split.push_back(E_vec_final[i]);
+            }
+        }else{
+            //not doing any random stopping
+            E_vec_final_randomly_split=E_vec_final;
+        }
+    }
+
+
+
+
+    //TODO set the is_vertex_an_edge_endpoint
+    for (size_t i = 0; i < E_vec_final_randomly_split.size(); i++) {
+        is_vertex_an_edge_endpoint[E_vec_final_randomly_split[i](0)]=true;
+        is_vertex_an_edge_endpoint[E_vec_final_randomly_split[i](1)]=true;
     }
 
 
@@ -885,7 +926,7 @@ Eigen::MatrixXi Mesher::create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_
     // std::cout << "E has rows " << E.rows() << '\n';
 
 
-    return vec2eigen(E_vec_final);
+    return vec2eigen(E_vec_final_randomly_split);
 }
 
 // void Mesher::ramer_douglas_peucker(const Eigen::MatrixXd P, double tol, Eigen::MatrixXd S, Eigen::VectorXi J){

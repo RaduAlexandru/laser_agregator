@@ -50,7 +50,7 @@ Mesher::Mesher() :
         m_triangle_angle(0.0),
         m_show_delaunay(true),
         m_min_length_horizontal_edge(0),
-        m_max_length_horizontal_edge(25),
+        m_max_length_horizontal_edge(450),
         m_triangle_silent(true),
         m_triangle_fast_arithmetic(true),
         m_triangle_robust_interpolation(true),
@@ -61,9 +61,9 @@ Mesher::Mesher() :
         m_min_tri_quality(0.015),
         m_create_faces(true),
         m_improve_mesh(true),
-        m_adaptive_edge_length(false),
+        m_adaptive_edge_length(true),
         m_do_random_edge_stopping(true),
-        m_random_edge_stopping_thresh(0.0),
+        m_random_edge_stopping_thresh(0.8),
         m_compute_naive_mesh(false){
 
     init_params();

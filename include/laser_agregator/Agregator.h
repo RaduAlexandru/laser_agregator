@@ -32,6 +32,7 @@ public:
     void agregate(const Mesh& local_mesh);
     void passthrough(const Mesh& local_mesh);
     void write_pwn();
+    void write_ply_directly(); //writes the ply directly from the V_agregated without putting it in m_scene
 
     void enable();
     void disable();
@@ -53,6 +54,7 @@ public:
     int nr_of_agregations;
     char m_pwn_path[256] = "/media/alex/Data/Master/SHK/c_ws/src/laser_agregator/pwn_clouds";
     char m_pwn_filename[64] = "cloud.pwn";
+    char m_ply_path[256] = "./results/";
 
     //misc
     bool m_show_prev_scene;

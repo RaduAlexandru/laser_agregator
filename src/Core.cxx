@@ -431,7 +431,10 @@ Mesh Core::read_mesh_from_file(std::string file_path) {
    if (fileExt == "off") {
        igl::readOFF(file_path, mesh.V, mesh.F);
    } else if (fileExt == "ply") {
+       std::cout << "reading from " << file_path << '\n';
        igl::readPLY(file_path, mesh.V, mesh.F);
+       std::cout << "mesh.V is " << mesh.V.rows() << '\n';
+       std::cout << "mesh.F is " << mesh.F.rows() << '\n';
    } else if (fileExt == "obj") {
        igl::readOBJ(file_path, mesh.V, mesh.F);
    }
@@ -1025,5 +1028,56 @@ void Core::remove_point_in_the_gap(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) {
 
 
     // std::cout << "min max is " << min << " " << max << '\n';
+
+}
+
+
+void Core::save_viewer_model_matrix(){
+    //open a file and put there the
+    /*
+    view-Zcore.trackball_angle
+    view->core.camera_zoom
+    view->core.model_zoom
+    view->model_translation
+    */
+    VLOG(1) << "save_viewer_model_matrix";
+    std::ofstream myfile;
+    myfile.open ("./viewer_model_matrix.txt");
+    myfile  << m_view->core.trackball_angle.w() << " "
+            << m_view->core.trackball_angle.x() << " "
+            << m_view->core.trackball_angle.y() << " "
+            << m_view->core.trackball_angle.z() << " "
+            << m_view->core.camera_zoom << " "
+            << m_view->core.model_zoom << " "
+            << m_view->core.model_translation.x() << " "
+            << m_view->core.model_translation.y() << " "
+            << m_view->core.model_translation.z();
+    myfile.close();
+}
+
+void Core::load_viewer_model_matrix(){
+    /*read a file and put the things into
+    view-Zcore.trackball_angle
+    view->core.camera_zoom
+    view->core.model_zoom
+    view->model_translation
+    Set update matrices to true (maybe not necesarry )
+    */
+    VLOG(1) << "load_viewer_model_matrix";
+    std::ifstream infile( "./viewer_model_matrix.txt" );
+    std::string line;
+    std::getline(infile, line);
+    std::istringstream iss(line);
+    float q_w,q_x,q_y,q_z;
+    float model_x, model_y, model_z;
+    iss >> q_w >> q_x >> q_y >> q_z
+        >> m_view->core.camera_zoom
+        >> m_view->core.model_zoom
+        >> model_x
+        >> model_y
+        >> model_z;
+    m_view->core.trackball_angle=Eigen::Quaternionf(q_w,q_x,q_y,q_z);
+    m_view->core.model_translation=Eigen::Vector3f(model_x,model_y,model_z);
+
 
 }

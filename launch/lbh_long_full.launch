@@ -14,7 +14,9 @@
     <param name="cam_frame_left" value="cam_left" />
     <param name="cam_frame_right" value="cam_right" />
 
-    <param name="pose_file" value="/home/local/rosu/data/courtyard_data/lbh_long/poses/courtyard_20180714.txt" />
+    <param name="pose_file" value="/home/local/rosu/data/courtyard_data/lbh_long/poses/courtyard_26_poses.txt" />
+    <!-- <param name="pose_file" value="/home/local/rosu/data/courtyard_data/lbh_long/poses/courtyard_20180714.txt" /> -->
+    <!-- <param name="pose_file" value="/home/local/rosu/data/courtyard_data/lbh_long/poses/courtyard_20180715_poses.txt" /> -->
     <param name="exact_pose" value="true" />
     <param name="randomize_laser_view_dir" value="true" />
 

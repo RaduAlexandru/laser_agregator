@@ -13,6 +13,7 @@
 #include <igl/per_vertex_normals.h>
 #include <igl/per_face_normals.h>
 #include <igl/remove_unreferenced.h>
+#include <igl/writePLY.h>
 
 //ros
 #include <ros/ros.h>
@@ -29,7 +30,8 @@ Agregator::Agregator():
         m_finished_scene_idx(-1),
         m_working_scene_idx(0),
         m_nr_points_agregated(0),
-        m_nr_prealocated_points(33000000),
+        // m_nr_prealocated_points(33000000), //for the full cloud we need this +70737385
+        m_nr_prealocated_points(103737385),
         m_do_agregation(true),
         m_is_enabled(true),
         m_nr_points_dropped(0){
@@ -140,6 +142,33 @@ void Agregator::write_pwn(){
     myfile.close();
 }
 
+void Agregator::write_ply_directly(){
+    std::cout << "write_ply_directly" << '\n';
+    strcat (m_ply_path,".ply");
+    
+    std::ofstream myFile( m_ply_path );
+    myFile << "ply\n";
+    myFile << "format ascii 1.0\n";
+    myFile << "element vertex " << m_nr_points_agregated << "\n";
+    myFile << "property float x\n";
+    myFile << "property float y\n";
+    myFile << "property float z\n";
+    myFile << "property float nx\n";
+    myFile << "property float ny\n";
+    myFile << "property float nz\n";
+    myFile << "end_header\n";
+
+    for(uint64_t i = 0; i < m_nr_points_agregated; ++i) {
+        if(i%1000==0){
+            std::cout << "Processed points: " << i << '\n';
+        }
+        myFile << V_agregated.row(i).x() << " " << V_agregated.row(i).y() << " " << V_agregated.row(i).z()
+               << " " << NV_agregated.row(i).x() << " " << NV_agregated.row(i).y() << " " << NV_agregated.row(i).z() << "\n";
+    }
+
+
+
+}
 
 void Agregator::enable(){
     preallocate();

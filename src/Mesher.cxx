@@ -154,12 +154,18 @@ void Mesher::naive_mesh(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
     }
     VLOG(1) << "after improve_mesh we have nr of verts" << mesh;
     igl::per_face_normals(mesh.V, mesh.F, mesh.N_faces);
+    //for some reason the normals are flipped so we unflip them
+    mesh.N_faces=-mesh.N_faces;
     remove_faces_with_low_confidence(mesh);
     VLOG(1) << "after remove_faces_with_low_confidence we have nr of verts" << mesh;
 
     remove_unreferenced_verts(mesh);
     VLOG(1) << "after remove_unreferenced_verts we have " << mesh;
     igl::per_vertex_normals(mesh.V, mesh.F, mesh.NV);
+    //for some reason the normals are flipped so we unflip them
+    mesh.NV=-mesh.NV;
+
+
 
     mesh.sanity_check();
     m_finished_mesh_idx = m_working_mesh_idx;
@@ -838,15 +844,27 @@ Eigen::MatrixXi Mesher::create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_
         std::vector<Eigen::Vector2i> E_vec_split_smaller;
         for (size_t i = 0; i < E_vec_split.size(); i++) {
             int edge_steps=std::abs( E_vec_split[i](1)-E_vec_split[i](0) );
-            if(edge_steps > m_max_length_horizontal_edge){
-                int nr_time_to_split=std::ceil(edge_steps/m_max_length_horizontal_edge);
-                int increment_of_each_sub_edge=m_max_length_horizontal_edge;
+
+            // //if we reach a certain maximum length also add it
+            double max_length_thresh;
+            if(m_adaptive_edge_length){
+                max_length_thresh=m_max_length_horizontal_edge/mesh.D(E_vec_split[i](0)); //so the edges that are further away will be shorter
+            }else{
+                max_length_thresh=m_max_length_horizontal_edge;
+            }
+
+            if(edge_steps > max_length_thresh){
+                int nr_time_to_split=std::ceil(edge_steps/max_length_thresh);
+                // int increment_of_each_sub_edge=m_max_length_horizontal_edge;
+                int increment_of_each_sub_edge=std::ceil(edge_steps/nr_time_to_split);
                 int start_idx=E_vec_split[i](0);
                 int end_idx=E_vec_split[i](1);
                 for (int s = 0; s < nr_time_to_split+1; s++) {
                     Eigen::Vector2i sub_edge;
                     sub_edge << start_idx +s*increment_of_each_sub_edge, std::min(start_idx +(s+1)*increment_of_each_sub_edge, end_idx);
-                    E_vec_split_smaller.push_back(sub_edge);
+                    if(sub_edge(0)!=sub_edge(1)){
+                        E_vec_split_smaller.push_back(sub_edge);
+                    }
                 }
             }else{
                 E_vec_split_smaller.push_back(E_vec_split[i]);

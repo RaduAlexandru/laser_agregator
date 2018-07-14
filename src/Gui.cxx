@@ -109,6 +109,15 @@ void Gui::update() {
 
     }
 
+    if (ImGui::CollapsingHeader("Core")) {
+        if(ImGui::Button("save_viewer_model_matrix")){
+            m_core->save_viewer_model_matrix();
+        }
+        if(ImGui::Button("load_viewer_model_matrix")){
+            m_core->load_viewer_model_matrix();
+        }
+    }
+
 
     ImGui::Separator();
     if (ImGui::CollapsingHeader("Mesher")) {
@@ -184,6 +193,10 @@ void Gui::update() {
             m_core->m_visualization_should_change=true;
         }
         ImGui::SliderInt("m_skip", &m_core->m_skip, 1, 50);
+        ImGui::InputText("exported filename", m_core->m_agregator->m_ply_path, IM_ARRAYSIZE(m_core->m_agregator->m_ply_path));
+        if (ImGui::Button("Write PLY directly from agregator")){
+            m_core->m_agregator->write_ply_directly();
+        }
     }
 
 

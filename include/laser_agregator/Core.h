@@ -55,6 +55,8 @@ public:
     void recompute_mesher();
     void fix_cloud_orientation(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
     void remove_point_in_the_gap(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud); //NEEDS TO BE CALLED WHEN THE CLOUD IS IN ALGORITHM FRAME
+    void save_viewer_model_matrix();
+    void load_viewer_model_matrix();
 
 
     //objects dependencies
@@ -85,7 +87,7 @@ public:
     std::shared_ptr<RosBagPlayer> m_player;
     tf::TransformListener m_tf_listener;
     float m_view_direction;
-    bool m_randomize_laser_view_dir; //we randomize the direction so we don't end up with blind spots in front of the laser 
+    bool m_randomize_laser_view_dir; //we randomize the direction so we don't end up with blind spots in front of the laser
 
 
     bool m_viewer_initialized;

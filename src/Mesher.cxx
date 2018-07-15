@@ -44,17 +44,17 @@ Mesher::Mesher() :
         m_smoothing_stepsize(-0.80),
         m_smoothing_max_movement(0.06),
         m_normal_thresh(0.989),
-        m_edge_merge_thresh(0.085),
+        m_edge_merge_thresh(0.1),
         m_show_as_image(false),
         m_triangle_area(1000.0),
         m_triangle_angle(0.0),
         m_show_delaunay(true),
         m_min_length_horizontal_edge(0),
-        m_max_length_horizontal_edge(450),
+        m_max_length_horizontal_edge(500),
         m_triangle_silent(true),
         m_triangle_fast_arithmetic(true),
         m_triangle_robust_interpolation(true),
-        m_edge_grazing_angle_thresh_horizontal(0.98),
+        m_edge_grazing_angle_thresh_horizontal(0.9),
         m_edge_grazing_angle_thresh_vertical(0.9),
         m_min_grazing(0.1),
         m_max_tri_length(6.5),
@@ -755,9 +755,15 @@ Eigen::MatrixXi Mesher::create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_
         //TODO set the is_vertex_an_edge_endpoint
         //set it already here before we remove some of the edges so we retain the points even though they are not connected by red edges
         for (size_t i = 0; i < E_vec.size(); i++) {
-            is_vertex_an_edge_endpoint[E_vec[i](0)]=true;
-            is_vertex_an_edge_endpoint[E_vec[i](1)]=true;
+            //avoid adding the edpoint of small edges as they will most likely correspond to vegetation
+            int edge_steps=std::abs( E_vec[i](1)-E_vec[i](0) );
+            if(edge_steps>2){
+                is_vertex_an_edge_endpoint[E_vec[i](0)]=true;
+                is_vertex_an_edge_endpoint[E_vec[i](1)]=true;
+            }
         }
+
+
 
         //filter by grazing direction
         std::vector<Edge_douglas> E_douglas_vec;
@@ -772,6 +778,15 @@ Eigen::MatrixXi Mesher::create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_
                 E_douglas_vec.push_back(edge_douglas);
             }
         }
+
+
+        // //TODO set the is_vertex_an_edge_endpoint
+        // //set it already here before we remove some of the edges so we retain the points even though they are not connected by red edges
+        // for (size_t i = 0; i < E_douglas_vec.size(); i++) {
+        //     is_vertex_an_edge_endpoint[E_douglas_vec[i].edge(0)]=true;
+        //     is_vertex_an_edge_endpoint[E_douglas_vec[i].edge(1)]=true;
+        // }
+
         // std::cout << "E_douglas_vec after filteirng for angle has size " << E_douglas_vec.size() << '\n';
         //get if the next or previous one are valid
         for (size_t i = 1; i < E_douglas_vec.size()-1; i++) {

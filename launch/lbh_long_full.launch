@@ -50,7 +50,7 @@
 
 
 
-    <param name="bag_args" value="--clock -q -r 1.0 --pause --start=$(arg start_time) $(arg path)$(arg file_1).bag" />
+    <param name="bag_args" value="--clock -q -r 0.5 --pause --start=$(arg start_time) $(arg path)$(arg file_1).bag" />
   </node>
 
 

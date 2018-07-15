@@ -54,7 +54,7 @@ Mesher::Mesher() :
         m_triangle_silent(true),
         m_triangle_fast_arithmetic(true),
         m_triangle_robust_interpolation(true),
-        m_edge_grazing_angle_thresh_horizontal(0.9),
+        m_edge_grazing_angle_thresh_horizontal(0.98),
         m_edge_grazing_angle_thresh_vertical(0.9),
         m_min_grazing(0.1),
         m_max_tri_length(6.5),
@@ -750,6 +750,13 @@ Eigen::MatrixXi Mesher::create_edges_douglas_peucker(Mesh& mesh, row_type_b& is_
         // std::cout << "E_vec has size " << E_vec.size() << '\n';
         if(E_vec.size()==0){
             continue;
+        }
+
+        //TODO set the is_vertex_an_edge_endpoint
+        //set it already here before we remove some of the edges so we retain the points even though they are not connected by red edges
+        for (size_t i = 0; i < E_vec.size(); i++) {
+            is_vertex_an_edge_endpoint[E_vec[i](0)]=true;
+            is_vertex_an_edge_endpoint[E_vec[i](1)]=true;
         }
 
         //filter by grazing direction
